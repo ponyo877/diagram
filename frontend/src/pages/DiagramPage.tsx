@@ -19,6 +19,7 @@ import type {
 import type { NodeType } from '../types/diagram'
 import Canvas from '../components/Canvas/Canvas'
 import Palette from '../components/Palette/Palette'
+import Sidebar from '../components/Sidebar/Sidebar'
 import { createNode } from '../utils/nodeFactory'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
@@ -28,12 +29,14 @@ export default function DiagramPage() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<DiagramStatus>('loading')
 
-  // ダイアグラムの状態
   const [nodes, setNodes] = useState<Node[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   const [selectedPalette, setSelectedPalette] = useState<NodeType | null>(null)
-  const [_selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [_selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
+
+  // 選択中ノードを最新データから導出
+  const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
 
   useEffect(() => {
     if (!id) {
@@ -53,7 +56,6 @@ export default function DiagramPage() {
     check()
   }, [id, navigate])
 
-  // React Flow ハンドラ
   const onNodesChange: OnNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [],
@@ -82,7 +84,25 @@ export default function DiagramPage() {
     [],
   )
 
-  // ローディング
+  const handleNodeSelect = useCallback((node: Node | null) => {
+    setSelectedNodeId(node?.id ?? null)
+  }, [])
+
+  const handleUpdateNode = useCallback((id: string, patch: Record<string, unknown>) => {
+    setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)),
+    )
+  }, [])
+
+  const handleDeleteNode = useCallback(
+    (id: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== id))
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id))
+      setSelectedNodeId(null)
+    },
+    [],
+  )
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -91,7 +111,6 @@ export default function DiagramPage() {
     )
   }
 
-  // 404
   if (status === 'not_found') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
@@ -107,7 +126,6 @@ export default function DiagramPage() {
     )
   }
 
-  // エラー
   if (status === 'error') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
@@ -131,26 +149,30 @@ export default function DiagramPage() {
           <span className="text-xs text-gray-400 font-mono">{id}</span>
         </div>
 
-        {/* キャンバスエリア */}
-        <div className="flex-1 overflow-hidden">
-          <Canvas
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            selectedPalette={selectedPalette}
-            onCreateNode={handleCreateNode}
-            onNodeSelect={setSelectedNode}
-            onEdgeSelect={setSelectedEdge}
+        {/* キャンバス＋サイドバー */}
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <Canvas
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              selectedPalette={selectedPalette}
+              onCreateNode={handleCreateNode}
+              onNodeSelect={handleNodeSelect}
+              onEdgeSelect={setSelectedEdge}
+            />
+          </div>
+          <Sidebar
+            selectedNode={selectedNode}
+            onUpdateNode={handleUpdateNode}
+            onDeleteNode={handleDeleteNode}
           />
         </div>
 
         {/* パレット */}
-        <Palette
-          selected={selectedPalette}
-          onSelect={setSelectedPalette}
-        />
+        <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
       </div>
     </ReactFlowProvider>
   )

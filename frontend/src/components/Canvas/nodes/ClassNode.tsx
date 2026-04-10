@@ -1,12 +1,16 @@
 import { useState } from 'react'
-import { Handle, Position, NodeResizer } from '@xyflow/react'
+import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import type { ClassNodeData } from '../../../types/diagram'
 
 const HANDLE_POSITIONS = [Position.Top, Position.Right, Position.Bottom, Position.Left]
 
-export default function ClassNode({ data, type, selected }: NodeProps) {
+export default function ClassNode({ id, data, type, selected }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editName, setEditName] = useState('')
+  const { setNodes } = useReactFlow()
+
   const nodeData = data as unknown as ClassNodeData
   const isInterface = type === 'interface'
 
@@ -19,6 +23,27 @@ export default function ClassNode({ data, type, selected }: NodeProps) {
     opacity: isHovered ? 1 : 0,
     transition: 'opacity 0.15s',
     zIndex: 10,
+  }
+
+  const startEditName = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditName(nodeData.name)
+    setIsEditingName(true)
+  }
+
+  const commitEditName = () => {
+    setIsEditingName(false)
+    const trimmed = editName.trim()
+    if (trimmed) {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, name: trimmed } } : n)),
+      )
+    }
+  }
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') commitEditName()
+    if (e.key === 'Escape') setIsEditingName(false)
   }
 
   return (
@@ -37,20 +62,8 @@ export default function ClassNode({ data, type, selected }: NodeProps) {
 
       {HANDLE_POSITIONS.map((pos) => (
         <>
-          <Handle
-            key={`${pos}-s`}
-            type="source"
-            position={pos}
-            id={`${pos}-s`}
-            style={handleStyle}
-          />
-          <Handle
-            key={`${pos}-t`}
-            type="target"
-            position={pos}
-            id={`${pos}-t`}
-            style={handleStyle}
-          />
+          <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
+          <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
         </>
       ))}
 
@@ -65,7 +78,24 @@ export default function ClassNode({ data, type, selected }: NodeProps) {
         {!nodeData.stereotype && isInterface && (
           <div className="text-xs text-gray-500 italic leading-tight">{'<<interface>>'}</div>
         )}
-        <div className="font-bold text-sm text-gray-800 leading-snug">{nodeData.name}</div>
+        {isEditingName ? (
+          <input
+            autoFocus
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={commitEditName}
+            onKeyDown={handleNameKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            className="font-bold text-sm text-gray-800 bg-transparent border-b border-blue-500 text-center outline-none w-full"
+          />
+        ) : (
+          <div
+            className="font-bold text-sm text-gray-800 leading-snug cursor-text"
+            onDoubleClick={startEditName}
+          >
+            {nodeData.name}
+          </div>
+        )}
       </div>
 
       {/* 属性セクション */}
