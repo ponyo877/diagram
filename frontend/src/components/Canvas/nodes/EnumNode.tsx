@@ -60,10 +60,10 @@ export default function EnumNode({ id, data, selected }: NodeProps) {
       />
 
       {HANDLE_POSITIONS.map((pos) => (
-        <>
-          <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
-          <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
-        </>
+        <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
+      ))}
+      {HANDLE_POSITIONS.map((pos) => (
+        <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
       ))}
 
       {/* ヘッダー */}

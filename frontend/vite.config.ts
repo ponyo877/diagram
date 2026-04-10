@@ -13,6 +13,11 @@ export default defineConfig({
         target: apiTarget,
         changeOrigin: true,
       },
+      '/yjs': {
+        target: apiTarget,
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
 })
