@@ -1,5 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ReactFlowProvider,
+  addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
+} from '@xyflow/react'
+import type {
+  Node,
+  Edge,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  NodeChange,
+  EdgeChange,
+  Connection,
+} from '@xyflow/react'
+import type { NodeType } from '../types/diagram'
+import Canvas from '../components/Canvas/Canvas'
+import Palette from '../components/Palette/Palette'
+import { createNode } from '../utils/nodeFactory'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
 
@@ -8,30 +28,61 @@ export default function DiagramPage() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<DiagramStatus>('loading')
 
+  // ダイアグラムの状態
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [edges, setEdges] = useState<Edge[]>([])
+  const [selectedPalette, setSelectedPalette] = useState<NodeType | null>(null)
+  const [_selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const [_selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
+
   useEffect(() => {
     if (!id) {
       navigate('/')
       return
     }
-
-    const checkDiagram = async () => {
+    const check = async () => {
       try {
         const res = await fetch(`/api/diagrams/${id}`)
-        if (res.status === 404) {
-          setStatus('not_found')
-        } else if (res.ok) {
-          setStatus('found')
-        } else {
-          setStatus('error')
-        }
+        if (res.status === 404) setStatus('not_found')
+        else if (res.ok) setStatus('found')
+        else setStatus('error')
       } catch {
         setStatus('error')
       }
     }
-
-    checkDiagram()
+    check()
   }, [id, navigate])
 
+  // React Flow ハンドラ
+  const onNodesChange: OnNodesChange = useCallback(
+    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [],
+  )
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [],
+  )
+  const onConnect: OnConnect = useCallback(
+    (connection: Connection) =>
+      setEdges((eds) =>
+        addEdge(
+          { ...connection, data: { edgeType: 'association' } },
+          eds,
+        ),
+      ),
+    [],
+  )
+
+  const handleCreateNode = useCallback(
+    (type: string, position: { x: number; y: number }) => {
+      const node = createNode(type, position)
+      setNodes((nds) => [...nds, node])
+      setSelectedPalette(null)
+    },
+    [],
+  )
+
+  // ローディング
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -40,6 +91,7 @@ export default function DiagramPage() {
     )
   }
 
+  // 404
   if (status === 'not_found') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
@@ -55,6 +107,7 @@ export default function DiagramPage() {
     )
   }
 
+  // エラー
   if (status === 'error') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
@@ -69,41 +122,36 @@ export default function DiagramPage() {
     )
   }
 
-  // Phase 1: プレースホルダー（Phase 2 でキャンバスに置き換え）
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      {/* ツールバー */}
-      <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shadow-sm">
-        <span className="font-bold text-blue-600 text-lg">Diagramer</span>
-        <span className="text-xs text-gray-400 font-mono">{id}</span>
-      </div>
-
-      {/* キャンバスエリア（プレースホルダー） */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center text-gray-400">
-          <svg className="mx-auto mb-4 opacity-30" width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <rect x="8" y="8" width="48" height="48" rx="4" stroke="#94A3B8" strokeWidth="2" strokeDasharray="4 4" />
-            <rect x="16" y="16" width="32" height="10" rx="2" fill="#CBD5E1" />
-            <rect x="16" y="30" width="32" height="6" rx="2" fill="#E2E8F0" />
-            <rect x="16" y="40" width="32" height="6" rx="2" fill="#E2E8F0" />
-          </svg>
-          <p className="text-lg">キャンバス準備中</p>
-          <p className="text-sm mt-1">Phase 2 で実装予定</p>
+    <ReactFlowProvider>
+      <div className="h-screen flex flex-col overflow-hidden">
+        {/* ツールバー */}
+        <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shadow-sm z-10 shrink-0">
+          <span className="font-bold text-blue-600 text-lg">Diagramer</span>
+          <span className="text-xs text-gray-400 font-mono">{id}</span>
         </div>
-      </div>
 
-      {/* パレット（プレースホルダー） */}
-      <div className="h-14 bg-white border-t border-gray-200 flex items-center justify-center gap-3 px-4 shadow-sm">
-        {['クラス', 'インターフェース', '列挙型', 'ノート', 'パッケージ'].map((label) => (
-          <button
-            key={label}
-            disabled
-            className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
-          >
-            {label}
-          </button>
-        ))}
+        {/* キャンバスエリア */}
+        <div className="flex-1 overflow-hidden">
+          <Canvas
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            selectedPalette={selectedPalette}
+            onCreateNode={handleCreateNode}
+            onNodeSelect={setSelectedNode}
+            onEdgeSelect={setSelectedEdge}
+          />
+        </div>
+
+        {/* パレット */}
+        <Palette
+          selected={selectedPalette}
+          onSelect={setSelectedPalette}
+        />
       </div>
-    </div>
+    </ReactFlowProvider>
   )
 }

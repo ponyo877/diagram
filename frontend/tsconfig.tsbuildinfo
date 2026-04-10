@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/pages/diagrampage.tsx","./src/pages/landing.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/canvas/canvas.tsx","./src/components/canvas/nodes/classnode.tsx","./src/components/canvas/nodes/enumnode.tsx","./src/components/canvas/nodes/notenode.tsx","./src/components/canvas/nodes/packagenode.tsx","./src/components/palette/palette.tsx","./src/pages/diagrampage.tsx","./src/pages/landing.tsx","./src/types/diagram.ts","./src/utils/nodefactory.ts"],"version":"5.9.3"}
