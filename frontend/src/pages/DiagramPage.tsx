@@ -33,10 +33,11 @@ export default function DiagramPage() {
   const [edges, setEdges] = useState<Edge[]>([])
   const [selectedPalette, setSelectedPalette] = useState<NodeType | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [_selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
-  // 選択中ノードを最新データから導出
+  // 最新データから選択中ノード・エッジを導出
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
+  const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
 
   useEffect(() => {
     if (!id) {
@@ -68,7 +69,7 @@ export default function DiagramPage() {
     (connection: Connection) =>
       setEdges((eds) =>
         addEdge(
-          { ...connection, data: { edgeType: 'association' } },
+          { ...connection, type: 'diagram', data: { edgeType: 'association' } },
           eds,
         ),
       ),
@@ -86,6 +87,12 @@ export default function DiagramPage() {
 
   const handleNodeSelect = useCallback((node: Node | null) => {
     setSelectedNodeId(node?.id ?? null)
+    if (node) setSelectedEdgeId(null)
+  }, [])
+
+  const handleEdgeSelect = useCallback((edge: Edge | null) => {
+    setSelectedEdgeId(edge?.id ?? null)
+    if (edge) setSelectedNodeId(null)
   }, [])
 
   const handleUpdateNode = useCallback((id: string, patch: Record<string, unknown>) => {
@@ -94,14 +101,22 @@ export default function DiagramPage() {
     )
   }, [])
 
-  const handleDeleteNode = useCallback(
-    (id: string) => {
-      setNodes((nds) => nds.filter((n) => n.id !== id))
-      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id))
-      setSelectedNodeId(null)
-    },
-    [],
-  )
+  const handleDeleteNode = useCallback((id: string) => {
+    setNodes((nds) => nds.filter((n) => n.id !== id))
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id))
+    setSelectedNodeId(null)
+  }, [])
+
+  const handleUpdateEdge = useCallback((id: string, patch: Record<string, unknown>) => {
+    setEdges((eds) =>
+      eds.map((e) => (e.id === id ? { ...e, data: { ...e.data, ...patch } } : e)),
+    )
+  }, [])
+
+  const handleDeleteEdge = useCallback((id: string) => {
+    setEdges((eds) => eds.filter((e) => e.id !== id))
+    setSelectedEdgeId(null)
+  }, [])
 
   if (status === 'loading') {
     return (
@@ -161,13 +176,16 @@ export default function DiagramPage() {
               selectedPalette={selectedPalette}
               onCreateNode={handleCreateNode}
               onNodeSelect={handleNodeSelect}
-              onEdgeSelect={setSelectedEdge}
+              onEdgeSelect={handleEdgeSelect}
             />
           </div>
           <Sidebar
             selectedNode={selectedNode}
+            selectedEdge={selectedEdge}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
+            onUpdateEdge={handleUpdateEdge}
+            onDeleteEdge={handleDeleteEdge}
           />
         </div>
 

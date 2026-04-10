@@ -14,6 +14,7 @@ import type {
   OnEdgesChange,
   OnConnect,
   NodeTypes,
+  EdgeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { NodeType } from '../../types/diagram'
@@ -21,6 +22,7 @@ import ClassNode from './nodes/ClassNode'
 import EnumNode from './nodes/EnumNode'
 import NoteNode from './nodes/NoteNode'
 import PackageNode from './nodes/PackageNode'
+import DiagramEdge from './edges/DiagramEdge'
 
 const nodeTypes: NodeTypes = {
   class: ClassNode,
@@ -28,6 +30,10 @@ const nodeTypes: NodeTypes = {
   enum: EnumNode,
   note: NoteNode,
   package: PackageNode,
+}
+
+const edgeTypes: EdgeTypes = {
+  diagram: DiagramEdge,
 }
 
 interface CanvasProps {
@@ -78,12 +84,20 @@ export default function Canvas({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={{ type: 'diagram' }}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onPaneClick={handlePaneClick}
-        onNodeClick={(_, node) => onNodeSelect(node)}
-        onEdgeClick={(_, edge) => onEdgeSelect(edge)}
+        onNodeClick={(_, node) => {
+          onNodeSelect(node)
+          onEdgeSelect(null)
+        }}
+        onEdgeClick={(_, edge) => {
+          onEdgeSelect(edge)
+          onNodeSelect(null)
+        }}
         deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
