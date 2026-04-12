@@ -164,13 +164,13 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
               ))}
             </select>
             <input
-              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
               value={attr.name}
               placeholder="名前"
               onChange={(e) => updateAttribute(attr.id, { name: e.target.value })}
             />
             <input
-              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
               value={attr.type}
               placeholder="型"
               onChange={(e) => updateAttribute(attr.id, { type: e.target.value })}
@@ -206,13 +206,13 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
                 ))}
               </select>
               <input
-                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
                 value={method.name}
                 placeholder="method"
                 onChange={(e) => updateMethod(method.id, { name: e.target.value })}
               />
               <input
-                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
                 value={method.returnType}
                 placeholder="戻り値型"
                 onChange={(e) => updateMethod(method.id, { returnType: e.target.value })}
@@ -229,13 +229,13 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
               {method.parameters.map((param, idx) => (
                 <div key={idx} className="grid grid-cols-[1fr_1fr_16px] gap-1 items-center mb-1">
                   <input
-                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
                     value={param.name}
                     placeholder="param"
                     onChange={(e) => updateParameter(method.id, idx, { name: e.target.value })}
                   />
                   <input
-                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
                     value={param.type}
                     placeholder="Type"
                     onChange={(e) => updateParameter(method.id, idx, { type: e.target.value })}

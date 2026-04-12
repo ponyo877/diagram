@@ -69,7 +69,7 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
         {data.values.map((val) => (
           <div key={val.id} className="grid grid-cols-[1fr_16px] gap-1 items-center mb-1.5">
             <input
-              className="h-6 px-1.5 text-[11px] font-mono bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
+              className="h-6 px-1.5 text-[11px] font-mono bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
               value={val.name}
               onChange={(e) => updateValue(val.id, { name: e.target.value })}
             />
