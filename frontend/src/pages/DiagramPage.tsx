@@ -125,6 +125,16 @@ function DiagramEditor({ id }: { id: string }) {
           if (node) clipboardNode.current = node
           return
         }
+        if (e.key === 'x' && selectedNodeId) {
+          e.preventDefault()
+          const node = nodes.find((n) => n.id === selectedNodeId)
+          if (node) {
+            clipboardNode.current = node
+            handleDeleteNode(selectedNodeId)
+            setSelectedNodeId(null)
+          }
+          return
+        }
         if (e.key === 'v' && clipboardNode.current) {
           e.preventDefault()
           const src = clipboardNode.current
