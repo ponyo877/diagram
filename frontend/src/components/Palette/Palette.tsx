@@ -1,9 +1,10 @@
 import type { NodeType } from '../../types/diagram'
 
-const PALETTE_ITEMS: { type: NodeType; label: string; shortcut: string; svg: React.ReactNode }[] = [
+const PALETTE_ITEMS: { type: NodeType; label: string; engLabel: string; shortcut: string; svg: React.ReactNode }[] = [
   {
     type: 'class',
     label: 'クラス',
+    engLabel: 'Class',
     shortcut: 'C',
     svg: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -16,6 +17,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; shortcut: string; svg: Rea
   {
     type: 'interface',
     label: 'インターフェース',
+    engLabel: 'I/F',
     shortcut: 'I',
     svg: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 2">
@@ -26,6 +28,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; shortcut: string; svg: Rea
   {
     type: 'enum',
     label: '列挙型',
+    engLabel: 'Enum',
     shortcut: 'E',
     svg: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -38,6 +41,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; shortcut: string; svg: Rea
   {
     type: 'note',
     label: 'ノート',
+    engLabel: 'Note',
     shortcut: 'N',
     svg: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -51,6 +55,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; shortcut: string; svg: Rea
   {
     type: 'package',
     label: 'パッケージ',
+    engLabel: 'Pkg',
     shortcut: 'P',
     svg: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -73,13 +78,13 @@ export default function Palette({ selected, onSelect }: PaletteProps) {
 
   return (
     <div className="flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-soft-border px-1.5 py-1.5">
-      {PALETTE_ITEMS.map(({ type, label, shortcut, svg }) => (
+      {PALETTE_ITEMS.map(({ type, label, engLabel, shortcut, svg }) => (
         <button
           key={type}
           title={`${label} (${shortcut})`}
           onClick={() => handleClick(type)}
           className={`
-            w-9 h-9 flex items-center justify-center rounded-xl
+            w-11 h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl
             transition-colors duration-100
             ${selected === type
               ? 'bg-soft-primary-light text-soft-primary'
@@ -88,6 +93,7 @@ export default function Palette({ selected, onSelect }: PaletteProps) {
           `}
         >
           {svg}
+          <span className="text-[8px] leading-none">{engLabel}</span>
         </button>
       ))}
     </div>
