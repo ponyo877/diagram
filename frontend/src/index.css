@@ -13,30 +13,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* React Flow コントロールスタイル上書き */
-.react-flow__minimap {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(139,120,100,0.1);
-}
-.react-flow__controls {
-  box-shadow: 0 2px 8px rgba(139,120,100,0.1);
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e8e2d8;
-}
-.react-flow__controls-button {
-  border-bottom: 1px solid #e8e2d8 !important;
-  background: #fdfaf5 !important;
-}
-.react-flow__controls-button:last-child {
-  border-bottom: none !important;
-}
-.react-flow__controls-button:hover {
-  background: #f5f0e8 !important;
-}
-
-/* カスタムスクロールバー（サイドバー内） */
+/* カスタムスクロールバー（パネル内） */
 .panel-scroll {
   scrollbar-width: thin;
   scrollbar-color: #d8d0c4 transparent;

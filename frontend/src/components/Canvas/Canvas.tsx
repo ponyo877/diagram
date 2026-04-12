@@ -3,8 +3,6 @@ import {
   ReactFlow,
   Background,
   BackgroundVariant,
-  MiniMap,
-  Controls,
   useReactFlow,
 } from '@xyflow/react'
 import type {
@@ -108,23 +106,6 @@ export default function Canvas({
           size={1}
           color="#ddd8cf"
         />
-        <MiniMap
-          position="bottom-right"
-          zoomable
-          pannable
-          style={{
-            backgroundColor: '#fdfaf5',
-            border: '1px solid #e8e2d8',
-          }}
-          nodeColor={(node) => {
-            const colors: Record<string, string> = {
-              class: '#e3ecf8', interface: '#e4e1f5',
-              enum: '#daf0e2', note: '#fdf5dc', package: '#f0ebe3',
-            }
-            return colors[node.type as string] ?? '#e8e2d8'
-          }}
-        />
-        <Controls position="bottom-left" showInteractive={false} />
       </ReactFlow>
     </div>
   )

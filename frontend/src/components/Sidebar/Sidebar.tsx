@@ -16,7 +16,7 @@ interface SidebarProps {
 
 const panelTitle = (node: Node | null, edge: Edge | null) => {
   if (edge) return 'エッジ'
-  if (!node) return 'デザイン'
+  if (!node) return ''
   const labels: Record<string, string> = {
     class: 'クラス', interface: 'I/F', enum: 'Enum', note: 'ノート', package: 'パッケージ',
   }
@@ -31,68 +31,61 @@ export default function Sidebar({
   onUpdateEdge,
   onDeleteEdge,
 }: SidebarProps) {
+  if (!selectedNode && !selectedEdge) return null
+
   return (
-    <aside
-      className="w-60 bg-white shrink-0 overflow-y-auto panel-scroll flex flex-col"
-      style={{ boxShadow: '-1px 0 0 #e8e2d8' }}
-    >
+    <div className="w-64 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-soft-border overflow-hidden flex flex-col max-h-[calc(100vh-80px)]">
       {/* パネルヘッダー */}
-      <div className="h-9 flex items-center px-3 border-b border-soft-border sticky top-0 bg-white z-10 shrink-0">
-        <span className="text-[11px] font-semibold text-soft-muted uppercase tracking-widest">
+      <div className="h-9 flex items-center px-3 border-b border-soft-border shrink-0">
+        <span className="text-[11px] font-bold text-soft-muted uppercase tracking-widest">
           {panelTitle(selectedNode, selectedEdge)}
         </span>
       </div>
 
-      {!selectedNode && !selectedEdge && (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-[11px] text-soft-light text-center px-4 leading-relaxed">
-            ノードを選択すると<br />プロパティが表示されます
-          </p>
-        </div>
-      )}
+      <div className="overflow-y-auto panel-scroll flex-1">
+        {/* エッジ選択時 */}
+        {selectedEdge && (
+          <EdgeProperties
+            edge={selectedEdge}
+            onUpdate={onUpdateEdge}
+            onDelete={onDeleteEdge}
+          />
+        )}
 
-      {/* エッジ選択時 */}
-      {selectedEdge && (
-        <EdgeProperties
-          edge={selectedEdge}
-          onUpdate={onUpdateEdge}
-          onDelete={onDeleteEdge}
-        />
-      )}
-
-      {/* ノード選択時 */}
-      {selectedNode && !selectedEdge && (
-        <>
-          {(selectedNode.type === 'class' || selectedNode.type === 'interface') && (
-            <NodeProperties
-              node={selectedNode}
-              onUpdate={onUpdateNode}
-              onDelete={onDeleteNode}
-            />
-          )}
-          {selectedNode.type === 'enum' && (
-            <EnumProperties
-              node={selectedNode}
-              onUpdate={onUpdateNode}
-              onDelete={onDeleteNode}
-            />
-          )}
-          {selectedNode.type === 'note' && (
-            <NoteProperties
-              node={selectedNode}
-              onUpdate={onUpdateNode}
-              onDelete={onDeleteNode}
-            />
-          )}
-          {selectedNode.type === 'package' && (
-            <PackageProperties
-              node={selectedNode}
-              onUpdate={onUpdateNode}
-              onDelete={onDeleteNode}
-            />
-          )}
-        </>
-      )}
-    </aside>
+        {/* ノード選択時 */}
+        {selectedNode && !selectedEdge && (
+          <>
+            {(selectedNode.type === 'class' || selectedNode.type === 'interface') && (
+              <NodeProperties
+                node={selectedNode}
+                onUpdate={onUpdateNode}
+                onDelete={onDeleteNode}
+              />
+            )}
+            {selectedNode.type === 'enum' && (
+              <EnumProperties
+                node={selectedNode}
+                onUpdate={onUpdateNode}
+                onDelete={onDeleteNode}
+              />
+            )}
+            {selectedNode.type === 'note' && (
+              <NoteProperties
+                node={selectedNode}
+                onUpdate={onUpdateNode}
+                onDelete={onDeleteNode}
+              />
+            )}
+            {selectedNode.type === 'package' && (
+              <PackageProperties
+                node={selectedNode}
+                onUpdate={onUpdateNode}
+                onDelete={onDeleteNode}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </div>
   )
 }

@@ -18,17 +18,56 @@ import { nanoid } from 'nanoid'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
 
-function SaveStatusBadge({ status }: { status: 'saved' | 'saving' | 'offline' }) {
-  if (status === 'saving') {
-    return <span className="text-xs text-soft-muted">保存中...</span>
-  }
-  if (status === 'offline') {
-    return <span className="text-xs text-soft-red">● オフライン</span>
-  }
-  return <span className="text-xs text-soft-green">✓ 保存済み</span>
+/* ─── アイコンSVG ─── */
+
+function IconLink() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  )
 }
 
+function IconExport() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  )
+}
+
+function IconCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function LogoIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="#4a9ce8" />
+      <rect x="4" y="4" width="56" height="20" rx="12" fill="#3d8ad6" />
+      <rect x="4" y="16" width="56" height="8" fill="#3d8ad6" />
+      <line x1="4" y1="30" x2="60" y2="30" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
+      <line x1="4" y1="44" x2="60" y2="44" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
+      <rect x="18" y="11" width="28" height="4" rx="2" fill="white" fillOpacity="0.95" />
+      <rect x="10" y="34" width="36" height="3" rx="1.5" fill="white" fillOpacity="0.7" />
+      <rect x="10" y="39" width="26" height="3" rx="1.5" fill="white" fillOpacity="0.5" />
+      <rect x="10" y="48" width="32" height="3" rx="1.5" fill="white" fillOpacity="0.7" />
+      <rect x="10" y="53" width="20" height="3" rx="1.5" fill="white" fillOpacity="0.5" />
+    </svg>
+  )
+}
+
+/* ─── メインエディター ─── */
+
 function DiagramEditor({ id }: { id: string }) {
+  const navigate = useNavigate()
   const [selectedPalette, setSelectedPalette] = useState<NodeType | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -39,16 +78,9 @@ function DiagramEditor({ id }: { id: string }) {
 
   const { ydoc, provider, syncStatus } = useYjsProvider(id)
   const {
-    nodes,
-    edges,
-    onNodesChange,
-    onEdgesChange,
-    onConnect,
-    handleCreateNode,
-    handleUpdateNode,
-    handleDeleteNode,
-    handleUpdateEdge,
-    handleDeleteEdge,
+    nodes, edges, onNodesChange, onEdgesChange, onConnect,
+    handleCreateNode, handleUpdateNode, handleDeleteNode,
+    handleUpdateEdge, handleDeleteEdge,
   } = useYjsDiagram(ydoc)
   const { userName, updateUserName, remoteUsers } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
@@ -73,7 +105,6 @@ function DiagramEditor({ id }: { id: string }) {
         if (selectedEdgeId) handleDeleteEdge(selectedEdgeId)
         return
       }
-      // パレットショートカット
       if (!e.ctrlKey && !e.metaKey) {
         const key = e.key.toLowerCase()
         if (key === 'c' && !selectedNodeId) { setSelectedPalette('class'); return }
@@ -94,13 +125,7 @@ function DiagramEditor({ id }: { id: string }) {
         if (e.key === 'v' && clipboardNode.current) {
           e.preventDefault()
           const src = clipboardNode.current
-          const newId = nanoid()
-          handleCreateNode(
-            src.type ?? 'class',
-            { x: src.position.x + 20, y: src.position.y + 20 },
-            newId,
-            { ...src.data },
-          )
+          handleCreateNode(src.type ?? 'class', { x: src.position.x + 20, y: src.position.y + 20 }, nanoid(), { ...src.data })
           return
         }
       }
@@ -122,33 +147,17 @@ function DiagramEditor({ id }: { id: string }) {
     if (edge) setSelectedNodeId(null)
   }, [])
 
-  const handleDeleteNodeAndClearSelection = useCallback(
-    (nodeId: string) => {
-      handleDeleteNode(nodeId)
-      setSelectedNodeId(null)
-    },
-    [handleDeleteNode],
-  )
+  const handleDeleteNodeAndClear = useCallback((nodeId: string) => {
+    handleDeleteNode(nodeId); setSelectedNodeId(null)
+  }, [handleDeleteNode])
 
-  const handleDeleteEdgeAndClearSelection = useCallback(
-    (edgeId: string) => {
-      handleDeleteEdge(edgeId)
-      setSelectedEdgeId(null)
-    },
-    [handleDeleteEdge],
-  )
+  const handleDeleteEdgeAndClear = useCallback((edgeId: string) => {
+    handleDeleteEdge(edgeId); setSelectedEdgeId(null)
+  }, [handleDeleteEdge])
 
-  const handleCreateNodeAndClearPalette = useCallback(
-    (type: string, position: { x: number; y: number }) => {
-      handleCreateNode(type, position)
-      setSelectedPalette(null)
-    },
-    [handleCreateNode],
-  )
-
-  const handleExport = useCallback(() => {
-    setShowExportModal(true)
-  }, [])
+  const handleCreateNodeAndClear = useCallback((type: string, position: { x: number; y: number }) => {
+    handleCreateNode(type, position); setSelectedPalette(null)
+  }, [handleCreateNode])
 
   const handleCopyUrl = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -159,86 +168,118 @@ function DiagramEditor({ id }: { id: string }) {
 
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
 
+  // 保存ステータス表示
+  const saveColor = saveStatus === 'saved' ? 'text-soft-green' : saveStatus === 'offline' ? 'text-soft-red' : 'text-soft-muted'
+  const saveTitle = saveStatus === 'saved' ? '保存済み' : saveStatus === 'offline' ? 'オフライン' : '保存中...'
+
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      {/* ライトツールバー */}
-      <div className="h-10 bg-soft-bg border-b border-soft-border flex items-center px-3 gap-2 shrink-0 z-20">
-        <span className="text-soft-text font-bold text-sm tracking-tight">Diagramer</span>
-        <div className="w-px h-4 bg-soft-border mx-1" />
-        <span className="text-soft-light text-xs font-mono truncate max-w-[160px]">{id.slice(0, 8)}…</span>
-        <div className="flex-1" />
+    <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
+      {/* フルスクリーンキャンバス */}
+      <Canvas
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        selectedPalette={selectedPalette}
+        onCreateNode={handleCreateNodeAndClear}
+        onNodeSelect={handleNodeSelect}
+        onEdgeSelect={handleEdgeSelect}
+      />
+
+      {/* 左上: 透過ロゴ */}
+      <button
+        className="absolute top-3 left-4 z-10 opacity-40 hover:opacity-70 transition-opacity"
+        onClick={() => navigate('/')}
+        title="トップに戻る"
+      >
+        <LogoIcon />
+      </button>
+
+      {/* 右上: フローティングアクションバー */}
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
         <RemoteCursors remoteUsers={remoteUsers} />
-        <button
-          onClick={handleCopyUrl}
-          className="text-xs text-soft-muted hover:text-soft-text px-3 py-1 rounded-full hover:bg-soft-hover transition-colors"
-          title="URLをコピー"
-        >
-          {urlCopied ? '✓ コピー' : 'URL共有'}
-        </button>
-        <button
-          onClick={handleExport}
-          className="text-xs bg-soft-primary hover:bg-soft-primary-hover text-white px-4 py-1.5 rounded-full font-medium transition-colors"
-        >
-          エクスポート
-        </button>
-        <SaveStatusBadge status={saveStatus} />
-        {isEditingName ? (
-          <input
-            autoFocus
-            className="text-xs bg-soft-input border border-soft-border rounded-lg px-2 py-0.5 w-28 text-soft-text focus:outline-none focus:border-soft-primary"
-            defaultValue={userName}
-            onBlur={(e) => { updateUserName(e.target.value); setIsEditingName(false) }}
-            onKeyDown={(e) => { if (e.key === 'Enter') { updateUserName((e.target as HTMLInputElement).value); setIsEditingName(false) } }}
-          />
-        ) : (
+        <div className="flex items-center gap-0.5 bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-soft-border px-1 py-1">
+          {/* 保存ステータス */}
+          <span className={`w-8 h-8 flex items-center justify-center ${saveColor}`} title={saveTitle}>
+            {saveStatus === 'saved' ? <IconCheck /> : saveStatus === 'offline' ? '●' : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+          </span>
+
+          <div className="w-px h-5 bg-soft-border" />
+
+          {/* URL共有 */}
           <button
-            className="text-xs text-soft-muted hover:text-soft-text px-2 py-1 rounded-full hover:bg-soft-hover transition-colors"
-            onClick={() => setIsEditingName(true)}
-            title="クリックして名前を変更"
+            onClick={handleCopyUrl}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${urlCopied ? 'text-soft-green' : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'}`}
+            title={urlCopied ? '✓ コピー済み' : 'URLを共有'}
           >
-            {userName}
+            {urlCopied ? <IconCheck /> : <IconLink />}
           </button>
-        )}
+
+          {/* エクスポート */}
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            title="PlantUML エクスポート"
+          >
+            <IconExport />
+          </button>
+
+          <div className="w-px h-5 bg-soft-border" />
+
+          {/* ユーザー名 */}
+          {isEditingName ? (
+            <input
+              autoFocus
+              className="text-xs bg-soft-input border border-soft-border rounded-lg px-2 py-1 w-24 text-soft-text focus:outline-none focus:border-soft-primary"
+              defaultValue={userName}
+              onBlur={(e) => { updateUserName(e.target.value); setIsEditingName(false) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { updateUserName((e.target as HTMLInputElement).value); setIsEditingName(false) } }}
+            />
+          ) : (
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-soft-primary text-white text-xs font-bold"
+              onClick={() => setIsEditingName(true)}
+              title={`${userName} — クリックして変更`}
+            >
+              {userName.charAt(0).toUpperCase()}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* メインエリア: 左パレット + キャンバス + 右サイドバー */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* 左サイドパレット */}
-        <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
-
-        {/* キャンバス */}
-        <div className="flex-1 overflow-hidden bg-soft-canvas">
-          <Canvas
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            selectedPalette={selectedPalette}
-            onCreateNode={handleCreateNodeAndClearPalette}
-            onNodeSelect={handleNodeSelect}
-            onEdgeSelect={handleEdgeSelect}
+      {/* 右側: フローティングプロパティパネル */}
+      {(selectedNode || selectedEdge) && (
+        <div className="absolute top-14 right-3 z-10">
+          <Sidebar
+            selectedNode={selectedNode}
+            selectedEdge={selectedEdge}
+            onUpdateNode={handleUpdateNode}
+            onDeleteNode={handleDeleteNodeAndClear}
+            onUpdateEdge={handleUpdateEdge}
+            onDeleteEdge={handleDeleteEdgeAndClear}
           />
         </div>
+      )}
 
-        {/* 右プロパティパネル */}
-        <Sidebar
-          selectedNode={selectedNode}
-          selectedEdge={selectedEdge}
-          onUpdateNode={handleUpdateNode}
-          onDeleteNode={handleDeleteNodeAndClearSelection}
-          onUpdateEdge={handleUpdateEdge}
-          onDeleteEdge={handleDeleteEdgeAndClearSelection}
-        />
+      {/* 下部中央: フローティングパレット */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+        <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
       </div>
 
-      {/* PlantUMLエクスポートモーダル */}
+      {/* エクスポートモーダル */}
       {showExportModal && (
         <ExportModal text={plantUmlText} onClose={() => setShowExportModal(false)} />
       )}
     </div>
   )
 }
+
+/* ─── ページラッパー ─── */
 
 export default function DiagramPage() {
   const { id } = useParams<{ id: string }>()
