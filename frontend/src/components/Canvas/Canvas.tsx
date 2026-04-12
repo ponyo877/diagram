@@ -16,11 +16,13 @@ import type {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { NodeType } from '../../types/diagram'
+import type { AwarenessState } from '../../hooks/useCollaboration'
 import ClassNode from './nodes/ClassNode'
 import EnumNode from './nodes/EnumNode'
 import NoteNode from './nodes/NoteNode'
 import PackageNode from './nodes/PackageNode'
 import DiagramEdge from './edges/DiagramEdge'
+import CanvasCursors from '../Cursors/CanvasCursors'
 
 const nodeTypes: NodeTypes = {
   class: ClassNode,
@@ -44,6 +46,9 @@ interface CanvasProps {
   onCreateNode: (type: string, position: { x: number; y: number }) => void
   onNodeSelect: (node: Node | null) => void
   onEdgeSelect: (edge: Edge | null) => void
+  remoteUsers: Map<number, AwarenessState>
+  onCursorMove: (pos: { x: number; y: number }) => void
+  onCursorLeave: () => void
 }
 
 export default function Canvas({
@@ -56,6 +61,9 @@ export default function Canvas({
   onCreateNode,
   onNodeSelect,
   onEdgeSelect,
+  remoteUsers,
+  onCursorMove,
+  onCursorLeave,
 }: CanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
 
@@ -73,10 +81,20 @@ export default function Canvas({
     [selectedPalette, screenToFlowPosition, onCreateNode, onNodeSelect, onEdgeSelect],
   )
 
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      onCursorMove(flowPos)
+    },
+    [screenToFlowPosition, onCursorMove],
+  )
+
   return (
     <div
       className="w-full h-full"
       style={{ cursor: selectedPalette ? 'crosshair' : 'default' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={onCursorLeave}
     >
       <ReactFlow
         nodes={nodes}
@@ -106,6 +124,8 @@ export default function Canvas({
           size={1}
           color="#ddd8cf"
         />
+        {/* リモートユーザーのカーソル表示 */}
+        <CanvasCursors remoteUsers={remoteUsers} />
       </ReactFlow>
     </div>
   )

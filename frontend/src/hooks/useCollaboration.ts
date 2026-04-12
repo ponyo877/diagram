@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { nanoid } from 'nanoid'
 import type { WebsocketProvider } from 'y-websocket'
 import { COLOR_PALETTE } from '../utils/colorPalette'
@@ -15,6 +15,7 @@ export function useCollaboration(provider: WebsocketProvider | null) {
     () => localStorage.getItem('diagramer-username') ?? `User${Math.floor(Math.random() * 1000)}`,
   )
   const [remoteUsers, setRemoteUsers] = useState<Map<number, AwarenessState>>(new Map())
+  const lastCursorUpdate = useRef(0)
 
   useEffect(() => {
     if (!provider) return
@@ -59,5 +60,23 @@ export function useCollaboration(provider: WebsocketProvider | null) {
     [provider],
   )
 
-  return { userName, updateUserName, remoteUsers }
+  // カーソル位置を awareness に送信（50ms スロットル）
+  const updateCursorPosition = useCallback(
+    (cursor: { x: number; y: number } | null) => {
+      if (!provider) return
+      const now = Date.now()
+      if (now - lastCursorUpdate.current < 50) return
+      lastCursorUpdate.current = now
+      provider.awareness.setLocalStateField('cursor', cursor)
+    },
+    [provider],
+  )
+
+  // キャンバス離脱時にカーソルを消す
+  const clearCursorPosition = useCallback(() => {
+    if (!provider) return
+    provider.awareness.setLocalStateField('cursor', null)
+  }, [provider])
+
+  return { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition }
 }

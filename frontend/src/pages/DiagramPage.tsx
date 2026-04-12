@@ -82,7 +82,7 @@ function DiagramEditor({ id }: { id: string }) {
     handleCreateNode, handleUpdateNode, handleDeleteNode,
     handleUpdateEdge, handleDeleteEdge,
   } = useYjsDiagram(ydoc)
-  const { userName, updateUserName, remoteUsers } = useCollaboration(provider)
+  const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
 
@@ -185,6 +185,9 @@ function DiagramEditor({ id }: { id: string }) {
         onCreateNode={handleCreateNodeAndClear}
         onNodeSelect={handleNodeSelect}
         onEdgeSelect={handleEdgeSelect}
+        remoteUsers={remoteUsers}
+        onCursorMove={updateCursorPosition}
+        onCursorLeave={clearCursorPosition}
       />
 
       {/* 左上: 透過ロゴ */}
