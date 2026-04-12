@@ -187,6 +187,19 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     [ydoc, yNodes, yEdges],
   )
 
+  // Relayout: update all node positions in a single transaction
+  const handleRelayout = useCallback(
+    (layoutedNodes: Node[]) => {
+      setNodes(layoutedNodes)
+      ydoc.transact(() => {
+        for (const node of layoutedNodes) {
+          yNodes.set(node.id, node as unknown as Record<string, unknown>)
+        }
+      }, LOCAL_ORIGIN)
+    },
+    [ydoc, yNodes],
+  )
+
   return {
     nodes,
     edges,
@@ -199,5 +212,6 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     handleUpdateEdge,
     handleDeleteEdge,
     handleImportDiagram,
+    handleRelayout,
   }
 }

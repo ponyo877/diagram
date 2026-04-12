@@ -15,6 +15,7 @@ import { useCollaboration } from '../hooks/useCollaboration'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useUndoManager } from '../hooks/useUndoManager'
 import { exportToPlantUml } from '../utils/plantUmlExporter'
+import { applyAutoLayout } from '../utils/diagramLayout'
 import { EdgeActionsContext } from '../contexts/EdgeActionsContext'
 import { nanoid } from 'nanoid'
 
@@ -83,7 +84,7 @@ function DiagramEditor({ id }: { id: string }) {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     handleCreateNode, handleUpdateNode, handleDeleteNode,
-    handleUpdateEdge, handleDeleteEdge, handleImportDiagram,
+    handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout,
   } = useYjsDiagram(ydoc)
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
@@ -190,6 +191,12 @@ function DiagramEditor({ id }: { id: string }) {
     setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 100)
   }, [handleImportDiagram, fitView])
 
+  const handleAutoLayout = useCallback(() => {
+    const layouted = applyAutoLayout(nodes, edges)
+    handleRelayout(layouted)
+    setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 100)
+  }, [nodes, edges, handleRelayout, fitView])
+
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
 
   // 保存ステータス表示
@@ -275,6 +282,20 @@ function DiagramEditor({ id }: { id: string }) {
             title="PlantUML Export"
           >
             <IconExport />
+          </button>
+
+          {/* Auto Layout */}
+          <button
+            onClick={handleAutoLayout}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            title="Auto Layout"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
           </button>
 
           <div className="w-px h-5 bg-soft-border" />

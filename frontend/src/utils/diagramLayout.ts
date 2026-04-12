@@ -1,20 +1,23 @@
 /**
- * Diagram Auto-Layout
+ * Diagram Auto-Layout using Dagre (Sugiyama algorithm)
  *
- * Hierarchy-aware grid layout with no external dependencies.
- * - Hierarchy edges (generalization/realization) place children below parents
- * - Remaining nodes fill a grid (max ~4 columns)
- * - Packages are placed separately with children inside
+ * Minimizes edge crossings by computing hierarchical layers.
+ * Works with all UML relationship types.
  */
+import dagre from 'dagre'
 import type { Node, Edge } from '@xyflow/react'
 
-const H_GAP = 280
-const V_GAP = 220
-const MAX_COLS = 4
+const NODE_WIDTH = 180
+const NODE_HEIGHT = 120
 const PKG_PADDING = 40
 const PKG_TAB_HEIGHT = 30
 
+/**
+ * Apply dagre auto-layout to nodes and edges.
+ * Returns a new array with updated positions (does not mutate input).
+ */
 export function applyAutoLayout(nodes: Node[], edges: Edge[]): Node[] {
+  // Separate packages and their children
   const packageNodes = nodes.filter((n) => n.type === 'package')
   const packageIds = new Set(packageNodes.map((n) => n.id))
   const topLevelNodes = nodes.filter((n) => !packageIds.has(n.id) && !n.parentId)
@@ -28,100 +31,106 @@ export function applyAutoLayout(nodes: Node[], edges: Edge[]): Node[] {
     }
   }
 
-  // Build hierarchy from generalization/realization edges
-  const hierarchyEdgeTypes = new Set(['generalization', 'realization'])
-  const parentOf = new Map<string, string>()
-  const childrenOf = new Map<string, string[]>()
+  // Build dagre graph for top-level nodes
+  const g = new dagre.graphlib.Graph()
+  g.setDefaultEdgeLabel(() => ({}))
+  g.setGraph({
+    rankdir: 'TB',
+    nodesep: 60,
+    ranksep: 80,
+    edgesep: 30,
+    marginx: 20,
+    marginy: 20,
+  })
 
-  for (const edge of edges) {
-    const edgeType = (edge.data as { edgeType?: string })?.edgeType
-    if (edgeType && hierarchyEdgeTypes.has(edgeType)) {
-      parentOf.set(edge.source, edge.target)
-      const children = childrenOf.get(edge.target) ?? []
-      children.push(edge.source)
-      childrenOf.set(edge.target, children)
-    }
-  }
-
-  // Identify root nodes (no hierarchy parent) and hierarchy children
-  const hierarchyChildren = new Set(parentOf.keys())
-  const rootNodes = topLevelNodes.filter((n) => !hierarchyChildren.has(n.id))
-
-  // Position nodes using grid layout for roots, then place children below parents
-  const positioned = new Map<string, { x: number; y: number }>()
-
-  // Grid layout for root nodes
-  const cols = Math.min(MAX_COLS, rootNodes.length)
-  for (let i = 0; i < rootNodes.length; i++) {
-    const col = i % cols
-    const row = Math.floor(i / cols)
-    positioned.set(rootNodes[i].id, {
-      x: col * H_GAP,
-      y: row * V_GAP,
-    })
-  }
-
-  // Place hierarchy children below their parents (recursive)
-  function placeChildren(parentId: string, depth: number) {
-    const children = childrenOf.get(parentId)
-    if (!children) return
-    const parentPos = positioned.get(parentId)
-    if (!parentPos) return
-
-    for (let i = 0; i < children.length; i++) {
-      positioned.set(children[i], {
-        x: parentPos.x + i * H_GAP,
-        y: parentPos.y + depth * V_GAP,
-      })
-      placeChildren(children[i], 1)
-    }
-  }
-
-  for (const root of rootNodes) {
-    placeChildren(root.id, 1)
-  }
-
-  // Place any unpositioned hierarchy children (orphans)
+  // Add nodes to dagre
   for (const node of topLevelNodes) {
-    if (!positioned.has(node.id)) {
-      const col = positioned.size % cols
-      const row = Math.floor(positioned.size / cols)
-      positioned.set(node.id, { x: col * H_GAP, y: row * V_GAP })
+    const w = node.type === 'note' ? 160 : NODE_WIDTH
+    const h = node.type === 'note' ? 80 : NODE_HEIGHT
+    g.setNode(node.id, { width: w, height: h })
+  }
+
+  // Add edges to dagre (only edges between top-level nodes)
+  const topLevelIds = new Set(topLevelNodes.map((n) => n.id))
+  for (const edge of edges) {
+    if (topLevelIds.has(edge.source) && topLevelIds.has(edge.target)) {
+      g.setEdge(edge.source, edge.target)
     }
   }
 
-  // Package layout (placed below the main grid)
-  const allYs = Array.from(positioned.values()).map((p) => p.y)
-  let pkgStartY = (allYs.length > 0 ? Math.max(...allYs) : 0) + V_GAP * 1.5
+  // Run dagre layout
+  dagre.layout(g)
+
+  // Collect positions
+  const positioned = new Map<string, { x: number; y: number }>()
+  for (const node of topLevelNodes) {
+    const pos = g.node(node.id)
+    if (pos) {
+      // dagre returns center coordinates; convert to top-left for React Flow
+      positioned.set(node.id, {
+        x: pos.x - (pos.width ?? NODE_WIDTH) / 2,
+        y: pos.y - (pos.height ?? NODE_HEIGHT) / 2,
+      })
+    }
+  }
+
+  // Layout package children with a separate dagre graph per package
+  const allTopY = Array.from(positioned.values()).map((p) => p.y)
+  let pkgStartY = (allTopY.length > 0 ? Math.max(...allTopY) : 0) + NODE_HEIGHT + 100
   let pkgX = 0
 
   for (const pkg of packageNodes) {
     const children = childNodesByPkg.get(pkg.id) ?? []
-    const pkgCols = Math.max(1, Math.ceil(Math.sqrt(children.length)))
 
-    for (let i = 0; i < children.length; i++) {
-      const col = i % pkgCols
-      const row = Math.floor(i / pkgCols)
-      positioned.set(children[i].id, {
-        x: PKG_PADDING + col * (H_GAP * 0.8),
-        y: PKG_TAB_HEIGHT + PKG_PADDING + row * (V_GAP * 0.8),
-      })
+    if (children.length > 0) {
+      // Mini dagre graph for package children
+      const pg = new dagre.graphlib.Graph()
+      pg.setDefaultEdgeLabel(() => ({}))
+      pg.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 60 })
+
+      const childIds = new Set(children.map((c) => c.id))
+      for (const child of children) {
+        pg.setNode(child.id, { width: NODE_WIDTH * 0.8, height: NODE_HEIGHT * 0.8 })
+      }
+      for (const edge of edges) {
+        if (childIds.has(edge.source) && childIds.has(edge.target)) {
+          pg.setEdge(edge.source, edge.target)
+        }
+      }
+
+      dagre.layout(pg)
+
+      let maxCX = 0, maxCY = 0
+      for (const child of children) {
+        const cp = pg.node(child.id)
+        if (cp) {
+          const cx = PKG_PADDING + cp.x
+          const cy = PKG_TAB_HEIGHT + PKG_PADDING + cp.y
+          positioned.set(child.id, { x: cx, y: cy })
+          maxCX = Math.max(maxCX, cx + (cp.width ?? 0))
+          maxCY = Math.max(maxCY, cy + (cp.height ?? 0))
+        }
+      }
+
+      const pkgWidth = Math.max(300, maxCX + PKG_PADDING)
+      const pkgHeight = Math.max(200, maxCY + PKG_PADDING)
+      positioned.set(pkg.id, { x: pkgX, y: pkgStartY })
+      ;(pkg as Record<string, unknown>).__layoutSize = { width: pkgWidth, height: pkgHeight }
+      pkgX += pkgWidth + 60
+    } else {
+      positioned.set(pkg.id, { x: pkgX, y: pkgStartY })
+      pkgX += 360
     }
-
-    const rows = Math.ceil(children.length / pkgCols) || 1
-    const pkgWidth = Math.max(300, pkgCols * (H_GAP * 0.8) + PKG_PADDING * 2)
-    const pkgHeight = Math.max(200, rows * (V_GAP * 0.8) + PKG_TAB_HEIGHT + PKG_PADDING * 2)
-
-    positioned.set(pkg.id, { x: pkgX, y: pkgStartY })
-    ;(pkg as Record<string, unknown>).__layoutSize = { width: pkgWidth, height: pkgHeight }
-    pkgX += pkgWidth + H_GAP * 0.5
   }
 
+  // Build result
   return nodes.map((node) => {
     const pos = positioned.get(node.id)
     if (!pos) return node
 
-    const layoutSize = (node as Record<string, unknown>).__layoutSize as { width: number; height: number } | undefined
+    const layoutSize = (node as Record<string, unknown>).__layoutSize as
+      | { width: number; height: number }
+      | undefined
     const result = { ...node, position: pos }
     if (layoutSize) {
       result.style = { ...result.style, width: layoutSize.width, height: layoutSize.height }
