@@ -20,12 +20,12 @@ type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
 
 function SaveStatusBadge({ status }: { status: 'saved' | 'saving' | 'offline' }) {
   if (status === 'saving') {
-    return <span className="text-xs text-gray-400">同期中...</span>
+    return <span className="text-xs text-white/50">保存中...</span>
   }
   if (status === 'offline') {
-    return <span className="text-xs text-red-400">オフライン</span>
+    return <span className="text-xs text-red-400">● オフライン</span>
   }
-  return <span className="text-xs text-green-500">保存済み ✓</span>
+  return <span className="text-xs text-figma-green">✓ 保存済み</span>
 }
 
 function DiagramEditor({ id }: { id: string }) {
@@ -72,6 +72,15 @@ function DiagramEditor({ id }: { id: string }) {
         if (selectedNodeId) handleDeleteNode(selectedNodeId)
         if (selectedEdgeId) handleDeleteEdge(selectedEdgeId)
         return
+      }
+      // パレットショートカット
+      if (!e.ctrlKey && !e.metaKey) {
+        const key = e.key.toLowerCase()
+        if (key === 'c' && !selectedNodeId) { setSelectedPalette('class'); return }
+        if (key === 'i') { setSelectedPalette('interface'); return }
+        if (key === 'e') { setSelectedPalette('enum'); return }
+        if (key === 'n') { setSelectedPalette('note'); return }
+        if (key === 'p') { setSelectedPalette('package'); return }
       }
       if (e.ctrlKey || e.metaKey) {
         if (e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
@@ -152,37 +161,38 @@ function DiagramEditor({ id }: { id: string }) {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      {/* ツールバー */}
-      <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shadow-sm z-10 shrink-0">
-        <span className="font-bold text-blue-600 text-lg">Diagramer</span>
-        <span className="text-xs text-gray-400 font-mono">{id}</span>
+      {/* ダークツールバー */}
+      <div className="h-10 bg-figma-toolbar border-b border-figma-toolbar-border flex items-center px-3 gap-2 shrink-0 z-20">
+        <span className="text-white font-semibold text-sm tracking-tight">Diagramer</span>
+        <div className="w-px h-4 bg-figma-toolbar-border mx-1" />
+        <span className="text-figma-muted text-xs font-mono truncate max-w-[160px]">{id.slice(0, 8)}…</span>
         <div className="flex-1" />
         <RemoteCursors remoteUsers={remoteUsers} />
         <button
           onClick={handleCopyUrl}
-          className="text-xs px-3 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+          className="text-xs text-figma-muted hover:text-white px-2 py-1 rounded hover:bg-white/10 transition-colors"
           title="URLをコピー"
         >
-          {urlCopied ? 'コピーしました！' : 'URLをコピー'}
+          {urlCopied ? '✓ コピー' : 'URL共有'}
         </button>
         <button
           onClick={handleExport}
-          className="text-xs px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          className="text-xs bg-figma-blue hover:bg-figma-blue-hover text-white px-3 py-1.5 rounded font-medium transition-colors"
         >
-          PlantUML出力
+          エクスポート
         </button>
         <SaveStatusBadge status={saveStatus} />
         {isEditingName ? (
           <input
             autoFocus
-            className="text-xs border border-gray-300 rounded px-2 py-0.5 w-32 focus:outline-none focus:border-blue-400"
+            className="text-xs bg-white/10 border border-white/20 rounded px-2 py-0.5 w-28 text-white focus:outline-none focus:border-figma-blue"
             defaultValue={userName}
             onBlur={(e) => { updateUserName(e.target.value); setIsEditingName(false) }}
             onKeyDown={(e) => { if (e.key === 'Enter') { updateUserName((e.target as HTMLInputElement).value); setIsEditingName(false) } }}
           />
         ) : (
           <button
-            className="text-xs text-gray-500 hover:text-gray-800 border border-transparent hover:border-gray-200 rounded px-2 py-0.5 transition-colors"
+            className="text-xs text-white/80 hover:text-white px-2 py-1 rounded hover:bg-white/10 transition-colors"
             onClick={() => setIsEditingName(true)}
             title="クリックして名前を変更"
           >
@@ -191,9 +201,13 @@ function DiagramEditor({ id }: { id: string }) {
         )}
       </div>
 
-      {/* キャンバス＋サイドバー */}
+      {/* メインエリア: 左パレット + キャンバス + 右サイドバー */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden">
+        {/* 左サイドパレット */}
+        <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
+
+        {/* キャンバス */}
+        <div className="flex-1 overflow-hidden bg-figma-canvas">
           <Canvas
             nodes={nodes}
             edges={edges}
@@ -206,6 +220,8 @@ function DiagramEditor({ id }: { id: string }) {
             onEdgeSelect={handleEdgeSelect}
           />
         </div>
+
+        {/* 右プロパティパネル */}
         <Sidebar
           selectedNode={selectedNode}
           selectedEdge={selectedEdge}
@@ -215,9 +231,6 @@ function DiagramEditor({ id }: { id: string }) {
           onDeleteEdge={handleDeleteEdgeAndClearSelection}
         />
       </div>
-
-      {/* パレット */}
-      <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
 
       {/* PlantUMLエクスポートモーダル */}
       {showExportModal && (
@@ -247,17 +260,17 @@ export default function DiagramPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500 text-lg">読み込み中...</p>
+      <div className="min-h-screen flex items-center justify-center bg-figma-canvas">
+        <p className="text-figma-muted text-lg">読み込み中...</p>
       </div>
     )
   }
   if (status === 'not_found') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <p className="text-gray-700 text-xl font-semibold">ダイアグラムが見つかりません</p>
-        <p className="text-gray-500 text-sm">URLが正しいか確認してください。削除済みの場合もあります。</p>
-        <button onClick={() => navigate('/')} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-figma-canvas gap-4">
+        <p className="text-figma-text text-xl font-semibold">ダイアグラムが見つかりません</p>
+        <p className="text-figma-muted text-sm">URLが正しいか確認してください。削除済みの場合もあります。</p>
+        <button onClick={() => navigate('/')} className="mt-4 bg-figma-blue hover:bg-figma-blue-hover text-white px-6 py-2 rounded text-sm transition-colors">
           トップに戻る
         </button>
       </div>
@@ -265,9 +278,9 @@ export default function DiagramPage() {
   }
   if (status === 'error') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-        <p className="text-red-500 text-xl font-semibold">エラーが発生しました</p>
-        <button onClick={() => navigate('/')} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-figma-canvas gap-4">
+        <p className="text-figma-red text-xl font-semibold">エラーが発生しました</p>
+        <button onClick={() => navigate('/')} className="mt-4 bg-figma-blue hover:bg-figma-blue-hover text-white px-6 py-2 rounded text-sm transition-colors">
           トップに戻る
         </button>
       </div>

@@ -24,69 +24,73 @@ const MULTIPLICITY_OPTIONS: { value: Multiplicity | ''; label: string }[] = [
   { value: '1..n', label: '1..n' },
 ]
 
+function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border-b border-figma-border">
+      <div className="px-3 py-2 text-[10px] font-semibold text-figma-light uppercase tracking-widest">
+        {title}
+      </div>
+      <div className="px-3 pb-3">{children}</div>
+    </div>
+  )
+}
+
+function PropSelect({ label, value, onChange, options }: {
+  label: string
+  value: string
+  onChange: (val: string) => void
+  options: { value: string; label: string }[]
+}) {
+  return (
+    <div className="mb-2">
+      <label className="block text-[10px] text-figma-muted mb-1">{label}</label>
+      <select
+        className="w-full h-7 px-2 text-[12px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue transition-colors appearance-none"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 export default function EdgeProperties({ edge, onUpdate, onDelete }: EdgePropertiesProps) {
   const data = edge.data as unknown as DiagramEdgeData
   const update = (patch: Partial<DiagramEdgeData>) =>
     onUpdate(edge.id, patch as Record<string, unknown>)
 
   return (
-    <div className="p-3 flex flex-col gap-3 text-sm">
-      <div>
-        <label className="text-xs text-gray-500 font-medium">関係の種別</label>
-        <select
-          className="w-full mt-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+    <div className="flex flex-col">
+      <PropSection title="関係">
+        <PropSelect
+          label="種別"
           value={data.edgeType}
-          onChange={(e) => update({ edgeType: e.target.value as EdgeType })}
-        >
-          {EDGE_TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
+          onChange={(val) => update({ edgeType: val as EdgeType })}
+          options={EDGE_TYPE_OPTIONS}
+        />
+      </PropSection>
 
-      <div>
-        <label className="text-xs text-gray-500 font-medium">多重度（始点側）</label>
-        <select
-          className="w-full mt-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+      <PropSection title="多重度">
+        <PropSelect
+          label="始点側"
           value={data.sourceMultiplicity ?? ''}
-          onChange={(e) => {
-            const val = e.target.value
-            update({ sourceMultiplicity: val ? (val as Multiplicity) : undefined })
-          }}
-        >
-          {MULTIPLICITY_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 font-medium">多重度（終点側）</label>
-        <select
-          className="w-full mt-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+          onChange={(val) => update({ sourceMultiplicity: val ? (val as Multiplicity) : undefined })}
+          options={MULTIPLICITY_OPTIONS}
+        />
+        <PropSelect
+          label="終点側"
           value={data.targetMultiplicity ?? ''}
-          onChange={(e) => {
-            const val = e.target.value
-            update({ targetMultiplicity: val ? (val as Multiplicity) : undefined })
-          }}
-        >
-          {MULTIPLICITY_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <hr className="border-gray-200" />
+          onChange={(val) => update({ targetMultiplicity: val ? (val as Multiplicity) : undefined })}
+          options={MULTIPLICITY_OPTIONS}
+        />
+      </PropSection>
 
       <button
         onClick={() => onDelete(edge.id)}
-        className="w-full text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded py-1.5 transition-colors"
+        className="flex items-center justify-center gap-1.5 text-[11px] text-figma-red hover:text-red-700 px-3 py-3 transition-colors"
       >
         エッジを削除
       </button>

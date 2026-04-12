@@ -35,37 +35,43 @@ export default function ExportModal({ text, onClose }: ExportModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[80vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800 text-sm">PlantUML 出力</h2>
+      <div
+        className="bg-white rounded-lg w-full max-w-2xl mx-4 flex flex-col max-h-[75vh]"
+        style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}
+      >
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between px-4 h-12 border-b border-figma-border shrink-0">
+          <span className="text-sm font-semibold text-figma-text">PlantUML 出力</span>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+            className="w-6 h-6 flex items-center justify-center rounded hover:bg-figma-canvas text-figma-muted hover:text-figma-text transition-colors text-base leading-none"
             title="閉じる"
           >
             ×
           </button>
         </div>
 
-        <pre className="flex-1 overflow-auto p-4 text-xs font-mono text-gray-700 bg-gray-50 border-b border-gray-100 whitespace-pre">
+        {/* コード表示 */}
+        <pre className="flex-1 overflow-auto p-4 text-[12px] font-mono text-figma-text bg-figma-canvas leading-relaxed whitespace-pre">
           {text}
         </pre>
 
-        <div className="flex gap-2 px-5 py-3 justify-end">
+        {/* ボタン群 */}
+        <div className="flex items-center justify-end gap-2 px-4 h-12 border-t border-figma-border shrink-0">
           <button
             onClick={handleCopy}
-            className="text-xs px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+            className="h-8 px-4 text-xs border border-figma-border rounded hover:bg-figma-canvas transition-colors text-figma-text"
           >
-            {copied ? 'コピーしました！' : 'コピー'}
+            {copied ? '✓ コピー済み' : 'コピー'}
           </button>
           <button
             onClick={handleDownload}
-            className="text-xs px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+            className="h-8 px-4 text-xs bg-figma-blue hover:bg-figma-blue-hover text-white rounded transition-colors"
           >
-            ダウンロード (.puml)
+            .puml でダウンロード
           </button>
         </div>
       </div>

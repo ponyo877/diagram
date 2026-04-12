@@ -27,7 +27,7 @@ export default function DiagramEdge({
   })
 
   const isDashed = edgeType === 'realization' || edgeType === 'dependency'
-  const stroke = selected ? '#3B82F6' : '#374151'
+  const stroke = selected ? '#0d99ff' : '#6b7280'
   // marker ID に使える安全な文字列に変換
   const safeId = id.replace(/[^a-zA-Z0-9]/g, '_')
 
@@ -159,8 +159,8 @@ export default function DiagramEdge({
         d={edgePath}
         fill="none"
         stroke={stroke}
-        strokeWidth={selected ? 2.5 : 1.5}
-        strokeDasharray={isDashed ? '8 4' : undefined}
+        strokeWidth={selected ? 2 : 1.5}
+        strokeDasharray={isDashed ? '6 3' : undefined}
         markerEnd={markerEndUrl}
         markerStart={markerStartUrl}
       />
@@ -169,10 +169,12 @@ export default function DiagramEdge({
       {edgeData?.sourceMultiplicity && (
         <EdgeLabelRenderer>
           <div
-            className="nodrag nopan text-gray-600 bg-white px-0.5 font-mono"
+            className="nodrag nopan bg-white px-0.5 font-mono"
             style={{
               position: 'absolute',
-              fontSize: 11,
+              fontSize: 10,
+              color: '#6b7280',
+              fontFamily: "'Inter', monospace",
               pointerEvents: 'none',
               transform: `translate(-50%, -50%) translate(${srcLX}px, ${srcLY}px)`,
             }}
@@ -186,10 +188,12 @@ export default function DiagramEdge({
       {edgeData?.targetMultiplicity && (
         <EdgeLabelRenderer>
           <div
-            className="nodrag nopan text-gray-600 bg-white px-0.5 font-mono"
+            className="nodrag nopan bg-white px-0.5 font-mono"
             style={{
               position: 'absolute',
-              fontSize: 11,
+              fontSize: 10,
+              color: '#6b7280',
+              fontFamily: "'Inter', monospace",
               pointerEvents: 'none',
               transform: `translate(-50%, -50%) translate(${tgtLX}px, ${tgtLY}px)`,
             }}

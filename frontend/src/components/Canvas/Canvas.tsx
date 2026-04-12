@@ -104,12 +104,27 @@ export default function Canvas({
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1.5}
-          color="#94a3b8"
+          gap={24}
+          size={1}
+          color="#d4d4d4"
         />
-        <MiniMap position="bottom-right" zoomable pannable />
-        <Controls position="bottom-left" />
+        <MiniMap
+          position="bottom-right"
+          zoomable
+          pannable
+          style={{
+            backgroundColor: '#fafafa',
+            border: '1px solid #e0e0e0',
+          }}
+          nodeColor={(node) => {
+            const colors: Record<string, string> = {
+              class: '#dbeafe', interface: '#e0e7ff',
+              enum: '#dcfce7', note: '#fef9c3', package: '#f1f5f9',
+            }
+            return colors[node.type as string] ?? '#e5e7eb'
+          }}
+        />
+        <Controls position="bottom-left" showInteractive={false} />
       </ReactFlow>
     </div>
   )

@@ -5,18 +5,13 @@ function DiagramerLogo() {
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="4" y="4" width="56" height="56" rx="8" fill="#2563EB" />
-      {/* ヘッダー区画 */}
       <rect x="4" y="4" width="56" height="20" rx="8" fill="#1D4ED8" />
       <rect x="4" y="16" width="56" height="8" fill="#1D4ED8" />
-      {/* 区切り線 */}
       <line x1="4" y1="30" x2="60" y2="30" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
       <line x1="4" y1="44" x2="60" y2="44" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
-      {/* クラス名 */}
       <rect x="18" y="11" width="28" height="4" rx="2" fill="white" fillOpacity="0.95" />
-      {/* 属性 */}
       <rect x="10" y="34" width="36" height="3" rx="1.5" fill="white" fillOpacity="0.7" />
       <rect x="10" y="39" width="26" height="3" rx="1.5" fill="white" fillOpacity="0.5" />
-      {/* メソッド */}
       <rect x="10" y="48" width="32" height="3" rx="1.5" fill="white" fillOpacity="0.7" />
       <rect x="10" y="53" width="20" height="3" rx="1.5" fill="white" fillOpacity="0.5" />
     </svg>
@@ -43,53 +38,54 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="text-center px-8">
-        {/* ロゴ */}
-        <div className="flex justify-center mb-6">
+    <div className="min-h-screen bg-figma-canvas flex flex-col">
+      {/* ナビゲーションバー */}
+      <nav className="h-12 bg-figma-toolbar flex items-center px-6">
+        <div className="flex items-center gap-2">
+          <svg width="20" height="20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="4" width="56" height="56" rx="8" fill="#2563EB" />
+            <rect x="4" y="4" width="56" height="20" rx="8" fill="#1D4ED8" />
+            <rect x="4" y="16" width="56" height="8" fill="#1D4ED8" />
+            <line x1="4" y1="30" x2="60" y2="30" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
+            <line x1="4" y1="44" x2="60" y2="44" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
+            <rect x="18" y="11" width="28" height="4" rx="2" fill="white" fillOpacity="0.95" />
+          </svg>
+          <span className="text-white font-semibold text-sm">Diagramer</span>
+        </div>
+      </nav>
+
+      {/* ヒーローセクション */}
+      <main className="flex-1 flex flex-col items-center justify-center px-8 pb-16">
+        <div className="mb-8">
           <DiagramerLogo />
         </div>
 
-        {/* タイトル */}
-        <h1 className="text-5xl font-bold text-gray-900 mb-3">
-          Diagramer
+        <h1 className="text-4xl font-bold text-figma-text mb-3 tracking-tight text-center leading-tight">
+          UMLクラス図を、<br />
+          <span className="text-figma-blue">リアルタイムで共同編集</span>
         </h1>
-
-        {/* サブタイトル */}
-        <p className="text-xl text-gray-600 mb-10">
-          UMLクラス図をリアルタイムで共同編集
+        <p className="text-figma-muted text-base mb-10 text-center max-w-sm leading-relaxed">
+          ログイン不要。URLを共有するだけで<br />チームと同時に作図できます。
         </p>
 
-        {/* エラー表示 */}
         {error && (
-          <p className="text-red-500 mb-4 text-sm">{error}</p>
+          <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+            {error}
+          </div>
         )}
 
-        {/* CTAボタン */}
         <button
           onClick={handleCreate}
           disabled={loading}
-          className="
-            bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-            text-white font-semibold
-            px-8 py-4 rounded-xl
-            text-lg
-            transition-colors duration-200
-            shadow-lg hover:shadow-xl
-            disabled:cursor-not-allowed
-          "
+          className="h-11 px-8 bg-figma-blue hover:bg-figma-blue-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm rounded transition-colors duration-150"
         >
-          {loading ? '作成中...' : 'クラス図を作成'}
+          {loading ? '作成中...' : 'クラス図を新規作成'}
         </button>
 
-        {/* 説明 */}
-        <p className="mt-8 text-sm text-gray-500">
-          ログイン不要。URLを共有するだけで複数人で編集できます。
+        <p className="mt-6 text-[11px] text-figma-light text-center leading-relaxed">
+          作成から90日間アクセスがないデータは自動削除されます
         </p>
-        <p className="mt-1 text-xs text-gray-400">
-          ※ 最終アクセスから90日間アクセスがない場合、データは自動削除されます。
-        </p>
-      </div>
+      </main>
     </div>
   )
 }

@@ -8,6 +8,17 @@ interface EnumPropertiesProps {
   onDelete: (id: string) => void
 }
 
+function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border-b border-figma-border">
+      <div className="px-3 py-2 text-[10px] font-semibold text-figma-light uppercase tracking-widest">
+        {title}
+      </div>
+      <div className="px-3 pb-3">{children}</div>
+    </div>
+  )
+}
+
 export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropertiesProps) {
   const data = node.data as unknown as EnumNodeData
   const update = (patch: Partial<EnumNodeData>) =>
@@ -26,45 +37,45 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
   }
 
   return (
-    <div className="p-3 flex flex-col gap-3 text-sm">
-      <div>
-        <label className="text-xs text-gray-500 font-medium">列挙型名</label>
-        <input
-          className="w-full mt-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
-          value={data.name}
-          onChange={(e) => update({ name: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 font-medium">背景色</label>
-        <div className="flex gap-2 mt-1 items-center">
+    <div className="flex flex-col">
+      <PropSection title="基本情報">
+        <div className="mb-2">
+          <label className="block text-[10px] text-figma-muted mb-1">列挙型名</label>
           <input
-            type="color"
-            value={data.color}
-            onChange={(e) => update({ color: e.target.value })}
-            className="w-8 h-8 border border-gray-300 rounded cursor-pointer shrink-0"
-          />
-          <input
-            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-blue-500"
-            value={data.color}
-            onChange={(e) => update({ color: e.target.value })}
+            className="w-full h-7 px-2 text-[12px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue focus:bg-white transition-colors"
+            value={data.name}
+            onChange={(e) => update({ name: e.target.value })}
           />
         </div>
-      </div>
-
-      <div>
-        <div className="text-xs text-gray-500 font-medium mb-1">列挙値</div>
-        {data.values.map((val) => (
-          <div key={val.id} className="flex gap-1 mb-1 items-center">
+        <div className="mb-2">
+          <label className="block text-[10px] text-figma-muted mb-1">背景色</label>
+          <div className="flex gap-2 items-center">
             <input
-              className="flex-1 border border-gray-300 rounded px-2 py-0.5 text-xs font-mono focus:outline-none focus:border-blue-500"
+              type="color"
+              value={data.color}
+              onChange={(e) => update({ color: e.target.value })}
+              className="w-7 h-7 border border-figma-border rounded cursor-pointer shrink-0 p-0.5 bg-figma-canvas"
+            />
+            <input
+              className="flex-1 h-7 px-2 text-[12px] font-mono bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue transition-colors"
+              value={data.color}
+              onChange={(e) => update({ color: e.target.value })}
+            />
+          </div>
+        </div>
+      </PropSection>
+
+      <PropSection title="列挙値">
+        {data.values.map((val) => (
+          <div key={val.id} className="grid grid-cols-[1fr_16px] gap-1 items-center mb-1.5">
+            <input
+              className="h-6 px-1.5 text-[11px] font-mono bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
               value={val.name}
               onChange={(e) => updateValue(val.id, { name: e.target.value })}
             />
             <button
               onClick={() => deleteValue(val.id)}
-              className="text-gray-400 hover:text-red-500 text-xs px-1 shrink-0"
+              className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-xs"
             >
               ✕
             </button>
@@ -72,17 +83,15 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
         ))}
         <button
           onClick={addValue}
-          className="text-xs text-blue-600 hover:text-blue-800 mt-0.5"
+          className="text-[11px] text-figma-blue hover:text-figma-blue-hover transition-colors mt-1"
         >
           + 値を追加
         </button>
-      </div>
-
-      <hr className="border-gray-200" />
+      </PropSection>
 
       <button
         onClick={() => onDelete(node.id)}
-        className="w-full text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded py-1.5 transition-colors"
+        className="flex items-center justify-center gap-1.5 text-[11px] text-figma-red hover:text-red-700 px-3 py-3 transition-colors"
       >
         ノードを削除
       </button>

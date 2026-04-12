@@ -8,7 +8,36 @@ interface NodePropertiesProps {
   onDelete: (id: string) => void
 }
 
-const VISIBILITY_OPTIONS: Visibility[] = ['+', '-', '#', '~']
+const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
+  { value: '+', label: '+ public' },
+  { value: '-', label: '- private' },
+  { value: '#', label: '# protected' },
+  { value: '~', label: '~ package' },
+]
+
+function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border-b border-figma-border">
+      <div className="px-3 py-2 text-[10px] font-semibold text-figma-light uppercase tracking-widest">
+        {title}
+      </div>
+      <div className="px-3 pb-3">{children}</div>
+    </div>
+  )
+}
+
+function PropInput({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="mb-2">
+      <label className="block text-[10px] text-figma-muted mb-1">{label}</label>
+      <input
+        className="w-full h-7 px-2 text-[12px] bg-figma-canvas border border-figma-border rounded
+                   focus:outline-none focus:border-figma-blue focus:bg-white transition-colors"
+        {...props}
+      />
+    </div>
+  )
+}
 
 export default function NodeProperties({ node, onUpdate, onDelete }: NodePropertiesProps) {
   const data = node.data as unknown as ClassNodeData
@@ -80,88 +109,75 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
   }
 
   return (
-    <div className="p-3 flex flex-col gap-3 text-sm">
-      {/* 名前 */}
-      <div>
-        <label className="text-xs text-gray-500 font-medium">
-          {isInterface ? 'インターフェース名' : 'クラス名'}
-        </label>
-        <input
-          className="w-full mt-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+    <div className="flex flex-col">
+      {/* 基本情報 */}
+      <PropSection title="基本情報">
+        <PropInput
+          label={isInterface ? 'インターフェース名' : 'クラス名'}
           value={data.name}
           onChange={(e) => update({ name: e.target.value })}
         />
-      </div>
-
-      {/* ステレオタイプ */}
-      <div>
-        <label className="text-xs text-gray-500 font-medium">ステレオタイプ</label>
         {isInterface ? (
-          <div className="mt-1 border border-gray-200 rounded px-2 py-1 text-sm text-gray-400 bg-gray-50 font-mono">
-            {'<<interface>>'}
+          <div className="mb-2">
+            <label className="block text-[10px] text-figma-muted mb-1">ステレオタイプ</label>
+            <div className="h-7 px-2 flex items-center text-[12px] bg-figma-canvas border border-figma-border rounded text-figma-light font-mono">
+              {'<<interface>>'}
+            </div>
           </div>
         ) : (
-          <input
-            className="w-full mt-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-blue-500"
+          <PropInput
+            label="ステレオタイプ"
             value={data.stereotype}
             placeholder="例: <<abstract>>"
             onChange={(e) => update({ stereotype: e.target.value })}
           />
         )}
-      </div>
-
-      {/* 背景色 */}
-      <div>
-        <label className="text-xs text-gray-500 font-medium">背景色</label>
-        <div className="flex gap-2 mt-1 items-center">
-          <input
-            type="color"
-            value={data.color}
-            onChange={(e) => update({ color: e.target.value })}
-            className="w-8 h-8 border border-gray-300 rounded cursor-pointer shrink-0"
-          />
-          <input
-            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-blue-500"
-            value={data.color}
-            onChange={(e) => update({ color: e.target.value })}
-          />
+        <div className="mb-2">
+          <label className="block text-[10px] text-figma-muted mb-1">背景色</label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={data.color}
+              onChange={(e) => update({ color: e.target.value })}
+              className="w-7 h-7 border border-figma-border rounded cursor-pointer shrink-0 p-0.5 bg-figma-canvas"
+            />
+            <input
+              className="flex-1 h-7 px-2 text-[12px] font-mono bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue transition-colors"
+              value={data.color}
+              onChange={(e) => update({ color: e.target.value })}
+            />
+          </div>
         </div>
-      </div>
+      </PropSection>
 
       {/* 属性 */}
-      <div>
-        <div className="text-xs text-gray-500 font-medium mb-1">属性</div>
+      <PropSection title="属性">
         {data.attributes.map((attr) => (
-          <div key={attr.id} className="flex gap-1 mb-1 items-center">
+          <div key={attr.id} className="grid grid-cols-[28px_1fr_1fr_16px] gap-1 items-center mb-1.5">
             <select
               value={attr.visibility}
-              onChange={(e) =>
-                updateAttribute(attr.id, { visibility: e.target.value as Visibility })
-              }
-              className="border border-gray-300 rounded px-1 text-xs w-9 focus:outline-none shrink-0"
+              onChange={(e) => updateAttribute(attr.id, { visibility: e.target.value as Visibility })}
+              className="h-6 text-[11px] bg-figma-canvas border border-figma-border rounded px-0.5 focus:outline-none focus:border-figma-blue"
             >
               {VISIBILITY_OPTIONS.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
+                <option key={v.value} value={v.value}>{v.value}</option>
               ))}
             </select>
             <input
-              className="flex-1 min-w-0 border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:border-blue-500"
+              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
               value={attr.name}
-              placeholder="name"
+              placeholder="名前"
               onChange={(e) => updateAttribute(attr.id, { name: e.target.value })}
             />
-            <span className="text-gray-400 text-xs shrink-0">:</span>
             <input
-              className="flex-1 min-w-0 border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:border-blue-500"
+              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
               value={attr.type}
-              placeholder="Type"
+              placeholder="型"
               onChange={(e) => updateAttribute(attr.id, { type: e.target.value })}
             />
             <button
               onClick={() => deleteAttribute(attr.id)}
-              className="text-gray-400 hover:text-red-500 text-xs px-1 shrink-0"
+              className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-xs"
             >
               ✕
             </button>
@@ -169,71 +185,64 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
         ))}
         <button
           onClick={addAttribute}
-          className="text-xs text-blue-600 hover:text-blue-800 mt-0.5"
+          className="text-[11px] text-figma-blue hover:text-figma-blue-hover transition-colors mt-1"
         >
           + 属性を追加
         </button>
-      </div>
+      </PropSection>
 
       {/* メソッド */}
-      <div>
-        <div className="text-xs text-gray-500 font-medium mb-1">メソッド</div>
+      <PropSection title="メソッド">
         {data.methods.map((method) => (
-          <div key={method.id} className="mb-2">
-            <div className="flex gap-1 items-center">
+          <div key={method.id} className="mb-3">
+            <div className="grid grid-cols-[28px_1fr_1fr_16px] gap-1 items-center mb-1">
               <select
                 value={method.visibility}
-                onChange={(e) =>
-                  updateMethod(method.id, { visibility: e.target.value as Visibility })
-                }
-                className="border border-gray-300 rounded px-1 text-xs w-9 focus:outline-none shrink-0"
+                onChange={(e) => updateMethod(method.id, { visibility: e.target.value as Visibility })}
+                className="h-6 text-[11px] bg-figma-canvas border border-figma-border rounded px-0.5 focus:outline-none focus:border-figma-blue"
               >
                 {VISIBILITY_OPTIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
+                  <option key={v.value} value={v.value}>{v.value}</option>
                 ))}
               </select>
               <input
-                className="flex-1 min-w-0 border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:border-blue-500"
+                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
                 value={method.name}
                 placeholder="method"
                 onChange={(e) => updateMethod(method.id, { name: e.target.value })}
               />
-              <span className="text-gray-400 text-xs shrink-0">:</span>
               <input
-                className="w-14 border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:border-blue-500 shrink-0"
+                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
                 value={method.returnType}
-                placeholder="Type"
+                placeholder="戻り値型"
                 onChange={(e) => updateMethod(method.id, { returnType: e.target.value })}
               />
               <button
                 onClick={() => deleteMethod(method.id)}
-                className="text-gray-400 hover:text-red-500 text-xs px-1 shrink-0"
+                className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-xs"
               >
                 ✕
               </button>
             </div>
             {/* 引数 */}
-            <div className="ml-3 mt-1 border-l border-gray-200 pl-2">
+            <div className="ml-3 border-l border-figma-border pl-2">
               {method.parameters.map((param, idx) => (
-                <div key={idx} className="flex gap-1 items-center mb-0.5">
+                <div key={idx} className="grid grid-cols-[1fr_1fr_16px] gap-1 items-center mb-1">
                   <input
-                    className="flex-1 min-w-0 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:border-blue-400 bg-gray-50"
+                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
                     value={param.name}
                     placeholder="param"
                     onChange={(e) => updateParameter(method.id, idx, { name: e.target.value })}
                   />
-                  <span className="text-gray-300 text-xs shrink-0">:</span>
                   <input
-                    className="flex-1 min-w-0 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:border-blue-400 bg-gray-50"
+                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue"
                     value={param.type}
                     placeholder="Type"
                     onChange={(e) => updateParameter(method.id, idx, { type: e.target.value })}
                   />
                   <button
                     onClick={() => deleteParameter(method.id, idx)}
-                    className="text-gray-300 hover:text-red-400 text-xs px-1 shrink-0"
+                    className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-[10px]"
                   >
                     ✕
                   </button>
@@ -241,7 +250,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
               ))}
               <button
                 onClick={() => addParameter(method.id)}
-                className="text-xs text-gray-400 hover:text-blue-600 mt-0.5"
+                className="text-[10px] text-figma-muted hover:text-figma-blue transition-colors mt-0.5"
               >
                 + 引数追加
               </button>
@@ -250,17 +259,16 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
         ))}
         <button
           onClick={addMethod}
-          className="text-xs text-blue-600 hover:text-blue-800"
+          className="text-[11px] text-figma-blue hover:text-figma-blue-hover transition-colors"
         >
           + メソッドを追加
         </button>
-      </div>
+      </PropSection>
 
-      <hr className="border-gray-200" />
-
+      {/* 削除 */}
       <button
         onClick={() => onDelete(node.id)}
-        className="w-full text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded py-1.5 transition-colors"
+        className="flex items-center justify-center gap-1.5 text-[11px] text-figma-red hover:text-red-700 px-3 py-3 transition-colors"
       >
         ノードを削除
       </button>

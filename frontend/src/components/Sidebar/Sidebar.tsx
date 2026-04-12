@@ -14,6 +14,15 @@ interface SidebarProps {
   onDeleteEdge: (id: string) => void
 }
 
+const panelTitle = (node: Node | null, edge: Edge | null) => {
+  if (edge) return 'エッジ'
+  if (!node) return 'デザイン'
+  const labels: Record<string, string> = {
+    class: 'クラス', interface: 'I/F', enum: 'Enum', note: 'ノート', package: 'パッケージ',
+  }
+  return labels[node.type ?? ''] ?? 'プロパティ'
+}
+
 export default function Sidebar({
   selectedNode,
   selectedEdge,
@@ -22,25 +31,25 @@ export default function Sidebar({
   onUpdateEdge,
   onDeleteEdge,
 }: SidebarProps) {
-  if (!selectedNode && !selectedEdge) {
-    return (
-      <div className="w-64 bg-white border-l border-gray-200 flex items-center justify-center shrink-0">
-        <p className="text-xs text-gray-400 text-center px-4">
-          ノードを選択すると
-          <br />
-          プロパティが表示されます
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <div className="w-64 bg-white border-l border-gray-200 overflow-y-auto shrink-0">
-      <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 sticky top-0">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          プロパティ
+    <aside
+      className="w-60 bg-white shrink-0 overflow-y-auto panel-scroll flex flex-col"
+      style={{ boxShadow: '-1px 0 0 #e0e0e0' }}
+    >
+      {/* パネルヘッダー */}
+      <div className="h-9 flex items-center px-3 border-b border-figma-border sticky top-0 bg-white z-10 shrink-0">
+        <span className="text-[11px] font-semibold text-figma-muted uppercase tracking-widest">
+          {panelTitle(selectedNode, selectedEdge)}
         </span>
       </div>
+
+      {!selectedNode && !selectedEdge && (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[11px] text-figma-light text-center px-4 leading-relaxed">
+            ノードを選択すると<br />プロパティが表示されます
+          </p>
+        </div>
+      )}
 
       {/* エッジ選択時 */}
       {selectedEdge && (
@@ -84,6 +93,6 @@ export default function Sidebar({
           )}
         </>
       )}
-    </div>
+    </aside>
   )
 }

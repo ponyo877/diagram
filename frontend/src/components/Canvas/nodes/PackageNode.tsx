@@ -14,14 +14,20 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
   const nodeData = data as unknown as PackageNodeData
   const bg = nodeData.color || '#f1f5f9'
 
+  const borderColor = selected ? '#0d99ff' : '#e0e0e0'
+  const boxShadow = selected
+    ? '0 2px 8px rgba(13,153,255,0.2)'
+    : '0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)'
+
   const handleStyle = {
-    width: 10,
-    height: 10,
-    background: '#6B7280',
+    width: 8,
+    height: 8,
+    background: '#0d99ff',
     border: '2px solid white',
     borderRadius: '50%',
+    boxShadow: '0 0 0 1px #0d99ff',
     opacity: isHovered ? 1 : 0,
-    transition: 'opacity 0.15s',
+    transition: 'opacity 0.1s',
     zIndex: 10,
   }
 
@@ -57,8 +63,8 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
         minWidth={150}
         minHeight={100}
         isVisible={selected}
-        lineStyle={{ borderColor: '#3B82F6', borderWidth: 1 }}
-        handleStyle={{ background: '#3B82F6', width: 8, height: 8, border: '2px solid white' }}
+        lineStyle={{ borderColor: '#0d99ff', borderWidth: 1 }}
+        handleStyle={{ background: '#0d99ff', width: 8, height: 8, border: '2px solid white', borderRadius: 2 }}
       />
 
       {HANDLE_POSITIONS.map((pos) => (
@@ -70,8 +76,14 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
 
       {/* パッケージタブ */}
       <div
-        className={`absolute left-0 flex items-center px-2 py-0.5 text-xs font-bold border-l border-t border-r rounded-tl rounded-tr ${selected ? 'border-blue-500' : 'border-gray-400'}`}
-        style={{ top: -26, backgroundColor: bg, minWidth: 80 }}
+        className="absolute left-0 flex items-center px-2 py-0.5 rounded-tl rounded-tr"
+        style={{
+          top: -24,
+          backgroundColor: bg,
+          border: `1px solid ${borderColor}`,
+          borderBottom: 'none',
+          minWidth: 80,
+        }}
         onDoubleClick={startEditName}
       >
         {isEditingName ? (
@@ -82,17 +94,22 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
             onBlur={commitEditName}
             onKeyDown={handleNameKeyDown}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-xs bg-transparent border-b border-blue-500 outline-none w-full"
+            className="text-[12px] font-semibold bg-transparent border-b border-figma-blue outline-none w-full text-figma-text"
           />
         ) : (
-          <span className="cursor-text">{nodeData.name}</span>
+          <span className="text-[12px] font-semibold text-figma-text cursor-text">{nodeData.name}</span>
         )}
       </div>
 
       {/* パッケージ本体 */}
       <div
-        className={`w-full h-full border-2 rounded-tr rounded-b ${selected ? 'border-blue-500' : 'border-gray-400'}`}
-        style={{ backgroundColor: bg, opacity: 0.5 }}
+        className="w-full h-full rounded-tr rounded-b"
+        style={{
+          backgroundColor: bg,
+          border: `1px solid ${borderColor}`,
+          boxShadow,
+          opacity: 0.7,
+        }}
       />
     </div>
   )

@@ -14,13 +14,14 @@ export default function EnumNode({ id, data, selected }: NodeProps) {
   const nodeData = data as unknown as EnumNodeData
 
   const handleStyle = {
-    width: 10,
-    height: 10,
-    background: '#10B981',
+    width: 8,
+    height: 8,
+    background: '#0d99ff',
     border: '2px solid white',
     borderRadius: '50%',
+    boxShadow: '0 0 0 1px #0d99ff',
     opacity: isHovered ? 1 : 0,
-    transition: 'opacity 0.15s',
+    transition: 'opacity 0.1s',
     zIndex: 10,
   }
 
@@ -45,9 +46,13 @@ export default function EnumNode({ id, data, selected }: NodeProps) {
     if (e.key === 'Escape') setIsEditingName(false)
   }
 
+  const borderClass = selected
+    ? 'border border-figma-blue shadow-node-selected'
+    : 'border border-figma-border shadow-node'
+
   return (
     <div
-      className={`bg-white border-2 rounded shadow-sm min-w-[140px] select-none ${selected ? 'border-blue-500' : 'border-gray-400'}`}
+      className={`bg-white ${borderClass} rounded overflow-hidden min-w-[140px] select-none`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -55,8 +60,8 @@ export default function EnumNode({ id, data, selected }: NodeProps) {
         minWidth={120}
         minHeight={60}
         isVisible={selected}
-        lineStyle={{ borderColor: '#3B82F6', borderWidth: 1 }}
-        handleStyle={{ background: '#3B82F6', width: 8, height: 8, border: '2px solid white' }}
+        lineStyle={{ borderColor: '#0d99ff', borderWidth: 1 }}
+        handleStyle={{ background: '#0d99ff', width: 8, height: 8, border: '2px solid white', borderRadius: 2 }}
       />
 
       {HANDLE_POSITIONS.map((pos) => (
@@ -68,10 +73,10 @@ export default function EnumNode({ id, data, selected }: NodeProps) {
 
       {/* ヘッダー */}
       <div
-        className="px-3 py-2 text-center border-b border-gray-300 rounded-t"
-        style={{ backgroundColor: nodeData.color || '#dcfce7' }}
+        className="px-3 py-2 flex flex-col items-center"
+        style={{ backgroundColor: nodeData.color ?? '#dcfce7' }}
       >
-        <div className="text-xs text-gray-500 italic leading-tight">{'<<enumeration>>'}</div>
+        <span className="text-[10px] text-gray-500 italic leading-tight">{'<<enumeration>>'}</span>
         {isEditingName ? (
           <input
             autoFocus
@@ -80,25 +85,27 @@ export default function EnumNode({ id, data, selected }: NodeProps) {
             onBlur={commitEditName}
             onKeyDown={handleNameKeyDown}
             onClick={(e) => e.stopPropagation()}
-            className="font-bold text-sm text-gray-800 bg-transparent border-b border-blue-500 text-center outline-none w-full"
+            className="text-[13px] font-semibold text-gray-800 bg-transparent border-b border-figma-blue text-center outline-none w-full"
           />
         ) : (
-          <div
-            className="font-bold text-sm text-gray-800 leading-snug cursor-text"
+          <span
+            className="text-[13px] font-semibold text-figma-text leading-tight cursor-text"
             onDoubleClick={startEditName}
           >
             {nodeData.name}
-          </div>
+          </span>
         )}
       </div>
 
       {/* 列挙値セクション */}
-      <div className="px-3 py-1 min-h-[24px] rounded-b">
+      <div className="h-px bg-figma-border" />
+      <div className="px-2 py-1">
         {nodeData.values.map((val) => (
-          <div key={val.id} className="text-xs text-gray-700 py-0.5 font-mono">
+          <div key={val.id} className="text-[11px] font-mono text-figma-text py-0.5 leading-tight">
             {val.name}
           </div>
         ))}
+        {nodeData.values.length === 0 && <div className="py-1" />}
       </div>
     </div>
   )
