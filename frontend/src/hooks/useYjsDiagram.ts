@@ -170,6 +170,23 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     [ydoc, yEdges],
   )
 
+  // バッチインポート（単一トランザクションで一括追加 → Ctrl+Z で一括アンドゥ可能）
+  const handleImportDiagram = useCallback(
+    (newNodes: Node[], newEdges: Edge[]) => {
+      setNodes((nds) => [...nds, ...newNodes])
+      setEdges((eds) => [...eds, ...newEdges])
+      ydoc.transact(() => {
+        for (const node of newNodes) {
+          yNodes.set(node.id, node as unknown as Record<string, unknown>)
+        }
+        for (const edge of newEdges) {
+          yEdges.set(edge.id, edge as unknown as Record<string, unknown>)
+        }
+      }, LOCAL_ORIGIN)
+    },
+    [ydoc, yNodes, yEdges],
+  )
+
   return {
     nodes,
     edges,
@@ -181,5 +198,6 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     handleDeleteNode,
     handleUpdateEdge,
     handleDeleteEdge,
+    handleImportDiagram,
   }
 }

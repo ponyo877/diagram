@@ -8,6 +8,7 @@ import Palette from '../components/Palette/Palette'
 import Sidebar from '../components/Sidebar/Sidebar'
 import RemoteCursors from '../components/Cursors/RemoteCursors'
 import ExportModal from '../components/ExportModal/ExportModal'
+import ImportModal from '../components/ImportModal/ImportModal'
 import { useYjsProvider } from '../hooks/useYjsProvider'
 import { useYjsDiagram } from '../hooks/useYjsDiagram'
 import { useCollaboration } from '../hooks/useCollaboration'
@@ -74,6 +75,7 @@ function DiagramEditor({ id }: { id: string }) {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [isEditingName, setIsEditingName] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [urlCopied, setUrlCopied] = useState(false)
   const clipboardNode = useRef<Node | null>(null)
 
@@ -81,7 +83,7 @@ function DiagramEditor({ id }: { id: string }) {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     handleCreateNode, handleUpdateNode, handleDeleteNode,
-    handleUpdateEdge, handleDeleteEdge,
+    handleUpdateEdge, handleDeleteEdge, handleImportDiagram,
   } = useYjsDiagram(ydoc)
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
@@ -170,6 +172,11 @@ function DiagramEditor({ id }: { id: string }) {
     })
   }, [])
 
+  const handleImport = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    handleImportDiagram(newNodes, newEdges)
+    setShowImportModal(false)
+  }, [handleImportDiagram])
+
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
 
   // 保存ステータス表示
@@ -235,6 +242,19 @@ function DiagramEditor({ id }: { id: string }) {
             {urlCopied ? <IconCheck /> : <IconLink />}
           </button>
 
+          {/* インポート */}
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            title="PlantUML インポート"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+
           {/* エクスポート */}
           <button
             onClick={() => setShowExportModal(true)}
@@ -289,6 +309,11 @@ function DiagramEditor({ id }: { id: string }) {
       {/* エクスポートモーダル */}
       {showExportModal && (
         <ExportModal text={plantUmlText} onClose={() => setShowExportModal(false)} />
+      )}
+
+      {/* インポートモーダル */}
+      {showImportModal && (
+        <ImportModal onClose={() => setShowImportModal(false)} onImport={handleImport} />
       )}
     </div>
   )
