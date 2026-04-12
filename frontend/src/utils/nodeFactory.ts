@@ -5,15 +5,15 @@ import type { ClassNodeData, EnumNodeData, NoteNodeData, PackageNodeData, NodeTy
 export function createNodeData(type: NodeType | string): Record<string, unknown> {
   switch (type) {
     case 'class':
-      return { nodeType: 'class', name: 'ClassName', stereotype: '', attributes: [], methods: [], color: '#dbeafe' }
+      return { nodeType: 'class', name: 'ClassName', stereotype: '', attributes: [], methods: [], color: '#e3ecf8' }
     case 'interface':
-      return { nodeType: 'interface', name: 'InterfaceName', stereotype: '<<interface>>', attributes: [], methods: [], color: '#e0e7ff' }
+      return { nodeType: 'interface', name: 'InterfaceName', stereotype: '<<interface>>', attributes: [], methods: [], color: '#e4e1f5' }
     case 'enum':
-      return { nodeType: 'enum', name: 'EnumName', values: [], color: '#dcfce7' }
+      return { nodeType: 'enum', name: 'EnumName', values: [], color: '#daf0e2' }
     case 'note':
-      return { nodeType: 'note', content: 'ノート', color: '#fef9c3' }
+      return { nodeType: 'note', content: 'ノート', color: '#fdf5dc' }
     case 'package':
-      return { nodeType: 'package', name: 'PackageName', color: '#f1f5f9' }
+      return { nodeType: 'package', name: 'PackageName', color: '#f0ebe3' }
     default:
       return {}
   }
@@ -34,7 +34,7 @@ export function createNode(type: string, position: { x: number; y: number }, cus
           stereotype: '',
           attributes: [],
           methods: [],
-          color: '#dbeafe',
+          color: '#e3ecf8',
         } satisfies ClassNodeData),
       }
 
@@ -49,7 +49,7 @@ export function createNode(type: string, position: { x: number; y: number }, cus
           stereotype: '<<interface>>',
           attributes: [],
           methods: [],
-          color: '#e0e7ff',
+          color: '#e4e1f5',
         } satisfies ClassNodeData),
       }
 
@@ -62,7 +62,7 @@ export function createNode(type: string, position: { x: number; y: number }, cus
           nodeType: 'enum',
           name: 'EnumName',
           values: [],
-          color: '#dcfce7',
+          color: '#daf0e2',
         } satisfies EnumNodeData),
       }
 
@@ -75,7 +75,7 @@ export function createNode(type: string, position: { x: number; y: number }, cus
         data: customData ?? ({
           nodeType: 'note',
           content: 'ノート',
-          color: '#fef9c3',
+          color: '#fdf5dc',
         } satisfies NoteNodeData),
       }
 
@@ -88,7 +88,7 @@ export function createNode(type: string, position: { x: number; y: number }, cus
         data: customData ?? ({
           nodeType: 'package',
           name: 'PackageName',
-          color: '#f1f5f9',
+          color: '#f0ebe3',
         } satisfies PackageNodeData),
         zIndex: -1,
       }
