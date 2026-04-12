@@ -203,6 +203,7 @@ export default function DiagramEdge({
               position: 'absolute',
               transform: `translate(-50%, -100%) translate(${tbX}px, ${tbY - 16}px)`,
               pointerEvents: 'all',
+              zIndex: 1000,
             }}
           >
             <div className="flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-soft-border px-1.5 py-1" onClick={(e) => e.stopPropagation()}>
