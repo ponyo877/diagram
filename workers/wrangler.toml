@@ -3,6 +3,15 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
+# --- Custom Domain Routes ---
+[[routes]]
+pattern = "diagramer.ponyo877.com/api/*"
+zone_name = "ponyo877.com"
+
+[[routes]]
+pattern = "diagramer.ponyo877.com/yjs/*"
+zone_name = "ponyo877.com"
+
 # --- D1 Database ---
 [[d1_databases]]
 binding = "DB"
