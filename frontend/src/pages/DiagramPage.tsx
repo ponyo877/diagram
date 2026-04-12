@@ -14,6 +14,7 @@ import { useCollaboration } from '../hooks/useCollaboration'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useUndoManager } from '../hooks/useUndoManager'
 import { exportToPlantUml } from '../utils/plantUmlExporter'
+import { EdgeActionsContext } from '../contexts/EdgeActionsContext'
 import { nanoid } from 'nanoid'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
@@ -175,6 +176,7 @@ function DiagramEditor({ id }: { id: string }) {
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
       {/* フルスクリーンキャンバス */}
+      <EdgeActionsContext.Provider value={{ onUpdateEdge: handleUpdateEdge, onDeleteEdge: handleDeleteEdgeAndClear }}>
       <Canvas
         nodes={nodes}
         edges={edges}
@@ -189,6 +191,7 @@ function DiagramEditor({ id }: { id: string }) {
         onCursorMove={updateCursorPosition}
         onCursorLeave={clearCursorPosition}
       />
+      </EdgeActionsContext.Provider>
 
       {/* 左上: 透過ロゴ */}
       <button
