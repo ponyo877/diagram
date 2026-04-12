@@ -243,62 +243,67 @@ function DiagramEditor({ id }: { id: string }) {
         <RemoteCursors remoteUsers={remoteUsers} />
         <div className="flex items-center gap-0.5 bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-soft-border px-1 py-1">
           {/* 保存ステータス */}
-          <span className={`w-8 h-8 flex items-center justify-center ${saveColor}`} title={saveTitle}>
+          <span className={`w-9 h-10 flex flex-col items-center justify-center gap-0.5 ${saveColor}`} title={saveTitle}>
             {saveStatus === 'saved' ? <IconCheck /> : saveStatus === 'offline' ? '●' : (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
             )}
+            <span className="text-[7px] leading-none">{saveStatus === 'saved' ? 'Saved' : saveStatus === 'offline' ? 'Offline' : '...'}</span>
           </span>
 
-          <div className="w-px h-5 bg-soft-border" />
+          <div className="w-px h-8 bg-soft-border" />
 
           {/* URL共有 */}
           <button
             onClick={handleCopyUrl}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${urlCopied ? 'text-soft-green' : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'}`}
+            className={`w-9 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg transition-colors ${urlCopied ? 'text-soft-green' : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'}`}
             title={urlCopied ? '✓ Copied' : 'Share URL'}
           >
             {urlCopied ? <IconCheck /> : <IconLink />}
+            <span className="text-[7px] leading-none">Share</span>
           </button>
 
           {/* インポート */}
           <button
             onClick={() => setShowImportModal(true)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            className="w-9 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
             title="PlantUML Import"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
+            <span className="text-[7px] leading-none">Import</span>
           </button>
 
           {/* エクスポート */}
           <button
             onClick={() => setShowExportModal(true)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            className="w-9 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
             title="PlantUML Export"
           >
             <IconExport />
+            <span className="text-[7px] leading-none">Export</span>
           </button>
 
           {/* Auto Layout */}
           <button
             onClick={handleAutoLayout}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            className="w-9 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
             title="Auto Layout"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1" />
               <rect x="14" y="3" width="7" height="7" rx="1" />
               <rect x="3" y="14" width="7" height="7" rx="1" />
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
+            <span className="text-[7px] leading-none">Layout</span>
           </button>
 
-          <div className="w-px h-5 bg-soft-border" />
+          <div className="w-px h-8 bg-soft-border" />
 
           {/* ユーザー名 */}
           {isEditingName ? (
