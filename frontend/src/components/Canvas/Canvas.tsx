@@ -45,7 +45,7 @@ interface CanvasProps {
   selectedPalette: NodeType | null
   onCreateNode: (type: string, position: { x: number; y: number }) => void
   onNodeSelect: (node: Node | null) => void
-  onEdgeSelect: (edge: Edge | null) => void
+  onEdgeSelect: (edge: Edge | null, clickPos?: { x: number; y: number }) => void
   remoteUsers: Map<number, AwarenessState>
   onCursorMove: (pos: { x: number; y: number }) => void
   onCursorLeave: () => void
@@ -110,8 +110,9 @@ export default function Canvas({
           onNodeSelect(node)
           onEdgeSelect(null)
         }}
-        onEdgeClick={(_, edge) => {
-          onEdgeSelect(edge)
+        onEdgeClick={(event, edge) => {
+          const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+          onEdgeSelect(edge, flowPos)
           onNodeSelect(null)
         }}
         deleteKeyCode={null}

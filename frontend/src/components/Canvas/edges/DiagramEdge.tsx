@@ -84,7 +84,7 @@ export default function DiagramEdge({
 }: EdgeProps) {
   const edgeData = data as unknown as DiagramEdgeData
   const edgeType = edgeData?.edgeType ?? 'association'
-  const { onUpdateEdge, onDeleteEdge } = useEdgeActions()
+  const { onUpdateEdge, onDeleteEdge, toolbarPosition } = useEdgeActions()
 
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
@@ -116,9 +116,9 @@ export default function DiagramEdge({
   const tgtLX = targetX - nx * OFF
   const tgtLY = targetY - ny * OFF
 
-  // フローティングツールバー位置（エッジ中点の上）
-  const midX = (sourceX + targetX) / 2
-  const midY = (sourceY + targetY) / 2
+  // フローティングツールバー位置（クリック位置の上部）
+  const tbX = toolbarPosition?.x ?? (sourceX + targetX) / 2
+  const tbY = toolbarPosition?.y ?? (sourceY + targetY) / 2
 
   const update = (patch: Partial<DiagramEdgeData>) => {
     onUpdateEdge(id, patch as Record<string, unknown>)
@@ -201,7 +201,7 @@ export default function DiagramEdge({
             className="nodrag nopan"
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -100%) translate(${midX}px, ${midY - 12}px)`,
+              transform: `translate(-50%, -100%) translate(${tbX}px, ${tbY - 16}px)`,
               pointerEvents: 'all',
             }}
           >

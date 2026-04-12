@@ -143,9 +143,12 @@ function DiagramEditor({ id }: { id: string }) {
     if (node) setSelectedEdgeId(null)
   }, [])
 
-  const handleEdgeSelect = useCallback((edge: Edge | null) => {
+  const [edgeToolbarPos, setEdgeToolbarPos] = useState<{ x: number; y: number } | null>(null)
+
+  const handleEdgeSelect = useCallback((edge: Edge | null, clickPos?: { x: number; y: number }) => {
     setSelectedEdgeId(edge?.id ?? null)
     if (edge) setSelectedNodeId(null)
+    setEdgeToolbarPos(clickPos ?? null)
   }, [])
 
   const handleDeleteNodeAndClear = useCallback((nodeId: string) => {
@@ -176,7 +179,7 @@ function DiagramEditor({ id }: { id: string }) {
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
       {/* フルスクリーンキャンバス */}
-      <EdgeActionsContext.Provider value={{ onUpdateEdge: handleUpdateEdge, onDeleteEdge: handleDeleteEdgeAndClear }}>
+      <EdgeActionsContext.Provider value={{ onUpdateEdge: handleUpdateEdge, onDeleteEdge: handleDeleteEdgeAndClear, toolbarPosition: edgeToolbarPos }}>
       <Canvas
         nodes={nodes}
         edges={edges}
