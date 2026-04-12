@@ -72,18 +72,18 @@ export default function Palette({ selected, onSelect }: PaletteProps) {
   }
 
   return (
-    <nav className="w-14 bg-figma-toolbar border-r border-figma-toolbar-border flex flex-col items-center pt-2 pb-2 gap-0.5 shrink-0 z-10">
+    <nav className="w-14 bg-soft-bg border-r border-soft-border flex flex-col items-center pt-2 pb-2 gap-0.5 shrink-0 z-10">
       {PALETTE_ITEMS.map(({ type, label, shortcut, svg }) => (
         <button
           key={type}
           title={`${label} (${shortcut})`}
           onClick={() => handleClick(type)}
           className={`
-            w-10 h-10 flex flex-col items-center justify-center rounded
+            w-10 h-10 flex flex-col items-center justify-center rounded-xl
             transition-colors duration-100
             ${selected === type
-              ? 'bg-figma-blue text-white'
-              : 'text-white/50 hover:text-white hover:bg-white/10'
+              ? 'bg-soft-primary-light text-soft-primary'
+              : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'
             }
           `}
         >
@@ -92,10 +92,10 @@ export default function Palette({ selected, onSelect }: PaletteProps) {
         </button>
       ))}
 
-      <div className="w-8 h-px bg-figma-toolbar-border my-1" />
+      <div className="w-8 h-px bg-soft-border my-1" />
 
       {selected && (
-        <span className="text-[9px] text-white/30 text-center px-1 leading-tight">
+        <span className="text-[9px] text-soft-light text-center px-1 leading-tight">
           Esc<br />解除
         </span>
       )}

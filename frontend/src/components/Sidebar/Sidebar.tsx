@@ -34,18 +34,18 @@ export default function Sidebar({
   return (
     <aside
       className="w-60 bg-white shrink-0 overflow-y-auto panel-scroll flex flex-col"
-      style={{ boxShadow: '-1px 0 0 #e0e0e0' }}
+      style={{ boxShadow: '-1px 0 0 #e8e2d8' }}
     >
       {/* パネルヘッダー */}
-      <div className="h-9 flex items-center px-3 border-b border-figma-border sticky top-0 bg-white z-10 shrink-0">
-        <span className="text-[11px] font-semibold text-figma-muted uppercase tracking-widest">
+      <div className="h-9 flex items-center px-3 border-b border-soft-border sticky top-0 bg-white z-10 shrink-0">
+        <span className="text-[11px] font-semibold text-soft-muted uppercase tracking-widest">
           {panelTitle(selectedNode, selectedEdge)}
         </span>
       </div>
 
       {!selectedNode && !selectedEdge && (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-[11px] text-figma-light text-center px-4 leading-relaxed">
+          <p className="text-[11px] text-soft-light text-center px-4 leading-relaxed">
             ノードを選択すると<br />プロパティが表示されます
           </p>
         </div>

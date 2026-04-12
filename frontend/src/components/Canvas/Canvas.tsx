@@ -106,22 +106,22 @@ export default function Canvas({
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1}
-          color="#d4d4d4"
+          color="#ddd8cf"
         />
         <MiniMap
           position="bottom-right"
           zoomable
           pannable
           style={{
-            backgroundColor: '#fafafa',
-            border: '1px solid #e0e0e0',
+            backgroundColor: '#fdfaf5',
+            border: '1px solid #e8e2d8',
           }}
           nodeColor={(node) => {
             const colors: Record<string, string> = {
-              class: '#dbeafe', interface: '#e0e7ff',
-              enum: '#dcfce7', note: '#fef9c3', package: '#f1f5f9',
+              class: '#e3ecf8', interface: '#e4e1f5',
+              enum: '#daf0e2', note: '#fdf5dc', package: '#f0ebe3',
             }
-            return colors[node.type as string] ?? '#e5e7eb'
+            return colors[node.type as string] ?? '#e8e2d8'
           }}
         />
         <Controls position="bottom-left" showInteractive={false} />

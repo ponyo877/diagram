@@ -27,7 +27,7 @@ export default function DiagramEdge({
   })
 
   const isDashed = edgeType === 'realization' || edgeType === 'dependency'
-  const stroke = selected ? '#0d99ff' : '#6b7280'
+  const stroke = selected ? '#4a9ce8' : '#9e9589'
   // marker ID に使える安全な文字列に変換
   const safeId = id.replace(/[^a-zA-Z0-9]/g, '_')
 
@@ -173,8 +173,8 @@ export default function DiagramEdge({
             style={{
               position: 'absolute',
               fontSize: 10,
-              color: '#6b7280',
-              fontFamily: "'Inter', monospace",
+              color: '#7a7168',
+              fontFamily: "'M PLUS Rounded 1c', monospace",
               pointerEvents: 'none',
               transform: `translate(-50%, -50%) translate(${srcLX}px, ${srcLY}px)`,
             }}
@@ -192,8 +192,8 @@ export default function DiagramEdge({
             style={{
               position: 'absolute',
               fontSize: 10,
-              color: '#6b7280',
-              fontFamily: "'Inter', monospace",
+              color: '#7a7168',
+              fontFamily: "'M PLUS Rounded 1c', monospace",
               pointerEvents: 'none',
               transform: `translate(-50%, -50%) translate(${tgtLX}px, ${tgtLY}px)`,
             }}

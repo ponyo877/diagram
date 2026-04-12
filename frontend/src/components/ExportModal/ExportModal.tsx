@@ -35,19 +35,19 @@ export default function ExportModal({ text, onClose }: ExportModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="bg-white rounded-lg w-full max-w-2xl mx-4 flex flex-col max-h-[75vh]"
-        style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.25)' }}
+        className="bg-white rounded-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[75vh]"
+        style={{ boxShadow: '0 12px 40px rgba(139,120,100,0.15)' }}
       >
         {/* ヘッダー */}
-        <div className="flex items-center justify-between px-4 h-12 border-b border-figma-border shrink-0">
-          <span className="text-sm font-semibold text-figma-text">PlantUML 出力</span>
+        <div className="flex items-center justify-between px-4 h-12 border-b border-soft-border shrink-0">
+          <span className="text-sm font-bold text-soft-text">PlantUML 出力</span>
           <button
             onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center rounded hover:bg-figma-canvas text-figma-muted hover:text-figma-text transition-colors text-base leading-none"
+            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-soft-hover text-soft-muted hover:text-soft-text transition-colors text-base leading-none"
             title="閉じる"
           >
             ×
@@ -55,21 +55,21 @@ export default function ExportModal({ text, onClose }: ExportModalProps) {
         </div>
 
         {/* コード表示 */}
-        <pre className="flex-1 overflow-auto p-4 text-[12px] font-mono text-figma-text bg-figma-canvas leading-relaxed whitespace-pre">
+        <pre className="flex-1 overflow-auto p-4 text-[12px] font-mono text-soft-text bg-soft-input leading-relaxed whitespace-pre">
           {text}
         </pre>
 
         {/* ボタン群 */}
-        <div className="flex items-center justify-end gap-2 px-4 h-12 border-t border-figma-border shrink-0">
+        <div className="flex items-center justify-end gap-2 px-4 h-12 border-t border-soft-border shrink-0">
           <button
             onClick={handleCopy}
-            className="h-8 px-4 text-xs border border-figma-border rounded hover:bg-figma-canvas transition-colors text-figma-text"
+            className="h-8 px-4 text-xs border border-soft-border rounded-full hover:bg-soft-hover transition-colors text-soft-text"
           >
             {copied ? '✓ コピー済み' : 'コピー'}
           </button>
           <button
             onClick={handleDownload}
-            className="h-8 px-4 text-xs bg-figma-blue hover:bg-figma-blue-hover text-white rounded transition-colors"
+            className="h-8 px-4 text-xs bg-soft-primary hover:bg-soft-primary-hover text-white rounded-full transition-colors"
           >
             .puml でダウンロード
           </button>

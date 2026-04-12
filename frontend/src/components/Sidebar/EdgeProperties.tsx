@@ -26,8 +26,8 @@ const MULTIPLICITY_OPTIONS: { value: Multiplicity | ''; label: string }[] = [
 
 function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-b border-figma-border">
-      <div className="px-3 py-2 text-[10px] font-semibold text-figma-light uppercase tracking-widest">
+    <div className="border-b border-soft-border">
+      <div className="px-3 py-2 text-[10px] font-semibold text-soft-light uppercase tracking-widest">
         {title}
       </div>
       <div className="px-3 pb-3">{children}</div>
@@ -43,9 +43,9 @@ function PropSelect({ label, value, onChange, options }: {
 }) {
   return (
     <div className="mb-2">
-      <label className="block text-[10px] text-figma-muted mb-1">{label}</label>
+      <label className="block text-[10px] text-soft-muted mb-1">{label}</label>
       <select
-        className="w-full h-7 px-2 text-[12px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue transition-colors appearance-none"
+        className="w-full h-7 px-2 text-[12px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary transition-colors appearance-none"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -90,7 +90,7 @@ export default function EdgeProperties({ edge, onUpdate, onDelete }: EdgePropert
 
       <button
         onClick={() => onDelete(edge.id)}
-        className="flex items-center justify-center gap-1.5 text-[11px] text-figma-red hover:text-red-700 px-3 py-3 transition-colors"
+        className="flex items-center justify-center gap-1.5 text-[11px] text-soft-red hover:text-red-700 px-3 py-3 transition-colors"
       >
         エッジを削除
       </button>

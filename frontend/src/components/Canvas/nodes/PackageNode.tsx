@@ -12,20 +12,20 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
 
   const nodeData = data as unknown as PackageNodeData
-  const bg = nodeData.color || '#f1f5f9'
+  const bg = nodeData.color || '#f0ebe3'
 
-  const borderColor = selected ? '#0d99ff' : '#e0e0e0'
+  const borderColor = selected ? '#4a9ce8' : '#e8e2d8'
   const boxShadow = selected
-    ? '0 2px 8px rgba(13,153,255,0.2)'
-    : '0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)'
+    ? '0 3px 12px rgba(74,156,232,0.18)'
+    : '0 2px 8px rgba(139,120,100,0.08), 0 0 0 1px rgba(139,120,100,0.06)'
 
   const handleStyle = {
     width: 8,
     height: 8,
-    background: '#0d99ff',
+    background: '#4a9ce8',
     border: '2px solid white',
     borderRadius: '50%',
-    boxShadow: '0 0 0 1px #0d99ff',
+    boxShadow: '0 0 0 1px #4a9ce8',
     opacity: isHovered ? 1 : 0,
     transition: 'opacity 0.1s',
     zIndex: 10,
@@ -63,8 +63,8 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
         minWidth={150}
         minHeight={100}
         isVisible={selected}
-        lineStyle={{ borderColor: '#0d99ff', borderWidth: 1 }}
-        handleStyle={{ background: '#0d99ff', width: 8, height: 8, border: '2px solid white', borderRadius: 2 }}
+        lineStyle={{ borderColor: '#4a9ce8', borderWidth: 1 }}
+        handleStyle={{ background: '#4a9ce8', width: 8, height: 8, border: '2px solid white', borderRadius: 4 }}
       />
 
       {HANDLE_POSITIONS.map((pos) => (
@@ -76,7 +76,7 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
 
       {/* パッケージタブ */}
       <div
-        className="absolute left-0 flex items-center px-2 py-0.5 rounded-tl rounded-tr"
+        className="absolute left-0 flex items-center px-2 py-0.5 rounded-tl-xl rounded-tr-xl"
         style={{
           top: -24,
           backgroundColor: bg,
@@ -94,16 +94,16 @@ export default function PackageNode({ id, data, selected }: NodeProps) {
             onBlur={commitEditName}
             onKeyDown={handleNameKeyDown}
             onClick={(e) => e.stopPropagation()}
-            className="text-[12px] font-semibold bg-transparent border-b border-figma-blue outline-none w-full text-figma-text"
+            className="text-[12px] font-bold bg-transparent border-b border-soft-primary outline-none w-full text-soft-text"
           />
         ) : (
-          <span className="text-[12px] font-semibold text-figma-text cursor-text">{nodeData.name}</span>
+          <span className="text-[12px] font-bold text-soft-text cursor-text">{nodeData.name}</span>
         )}
       </div>
 
       {/* パッケージ本体 */}
       <div
-        className="w-full h-full rounded-tr rounded-b"
+        className="w-full h-full rounded-tr-xl rounded-b-xl"
         style={{
           backgroundColor: bg,
           border: `1px solid ${borderColor}`,

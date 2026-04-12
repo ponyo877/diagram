@@ -17,8 +17,8 @@ const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
 
 function PropSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-b border-figma-border">
-      <div className="px-3 py-2 text-[10px] font-semibold text-figma-light uppercase tracking-widest">
+    <div className="border-b border-soft-border">
+      <div className="px-3 py-2 text-[10px] font-semibold text-soft-light uppercase tracking-widest">
         {title}
       </div>
       <div className="px-3 pb-3">{children}</div>
@@ -29,10 +29,10 @@ function PropSection({ title, children }: { title: string; children: React.React
 function PropInput({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="mb-2">
-      <label className="block text-[10px] text-figma-muted mb-1">{label}</label>
+      <label className="block text-[10px] text-soft-muted mb-1">{label}</label>
       <input
-        className="w-full h-7 px-2 text-[12px] bg-figma-canvas border border-figma-border rounded
-                   focus:outline-none focus:border-figma-blue focus:bg-white transition-colors"
+        className="w-full h-7 px-2 text-[12px] bg-soft-input border border-soft-border rounded
+                   focus:outline-none focus:border-soft-primary focus:bg-white transition-colors"
         {...props}
       />
     </div>
@@ -119,8 +119,8 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
         />
         {isInterface ? (
           <div className="mb-2">
-            <label className="block text-[10px] text-figma-muted mb-1">ステレオタイプ</label>
-            <div className="h-7 px-2 flex items-center text-[12px] bg-figma-canvas border border-figma-border rounded text-figma-light font-mono">
+            <label className="block text-[10px] text-soft-muted mb-1">ステレオタイプ</label>
+            <div className="h-7 px-2 flex items-center text-[12px] bg-soft-input border border-soft-border rounded text-soft-light font-mono">
               {'<<interface>>'}
             </div>
           </div>
@@ -133,16 +133,16 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
           />
         )}
         <div className="mb-2">
-          <label className="block text-[10px] text-figma-muted mb-1">背景色</label>
+          <label className="block text-[10px] text-soft-muted mb-1">背景色</label>
           <div className="flex gap-2 items-center">
             <input
               type="color"
               value={data.color}
               onChange={(e) => update({ color: e.target.value })}
-              className="w-7 h-7 border border-figma-border rounded cursor-pointer shrink-0 p-0.5 bg-figma-canvas"
+              className="w-7 h-7 border border-soft-border rounded cursor-pointer shrink-0 p-0.5 bg-soft-input"
             />
             <input
-              className="flex-1 h-7 px-2 text-[12px] font-mono bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue transition-colors"
+              className="flex-1 h-7 px-2 text-[12px] font-mono bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary transition-colors"
               value={data.color}
               onChange={(e) => update({ color: e.target.value })}
             />
@@ -157,27 +157,27 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
             <select
               value={attr.visibility}
               onChange={(e) => updateAttribute(attr.id, { visibility: e.target.value as Visibility })}
-              className="h-6 text-[11px] bg-figma-canvas border border-figma-border rounded px-0.5 focus:outline-none focus:border-figma-blue"
+              className="h-6 text-[11px] bg-soft-input border border-soft-border rounded px-0.5 focus:outline-none focus:border-soft-primary"
             >
               {VISIBILITY_OPTIONS.map((v) => (
                 <option key={v.value} value={v.value}>{v.value}</option>
               ))}
             </select>
             <input
-              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
+              className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
               value={attr.name}
               placeholder="名前"
               onChange={(e) => updateAttribute(attr.id, { name: e.target.value })}
             />
             <input
-              className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
+              className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
               value={attr.type}
               placeholder="型"
               onChange={(e) => updateAttribute(attr.id, { type: e.target.value })}
             />
             <button
               onClick={() => deleteAttribute(attr.id)}
-              className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-xs"
+              className="flex items-center justify-center text-soft-light hover:text-soft-red transition-colors text-xs"
             >
               ✕
             </button>
@@ -185,7 +185,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
         ))}
         <button
           onClick={addAttribute}
-          className="text-[11px] text-figma-blue hover:text-figma-blue-hover transition-colors mt-1"
+          className="text-[11px] text-soft-primary hover:text-soft-primary-hover transition-colors mt-1"
         >
           + 属性を追加
         </button>
@@ -199,50 +199,50 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
               <select
                 value={method.visibility}
                 onChange={(e) => updateMethod(method.id, { visibility: e.target.value as Visibility })}
-                className="h-6 text-[11px] bg-figma-canvas border border-figma-border rounded px-0.5 focus:outline-none focus:border-figma-blue"
+                className="h-6 text-[11px] bg-soft-input border border-soft-border rounded px-0.5 focus:outline-none focus:border-soft-primary"
               >
                 {VISIBILITY_OPTIONS.map((v) => (
                   <option key={v.value} value={v.value}>{v.value}</option>
                 ))}
               </select>
               <input
-                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
+                className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
                 value={method.name}
                 placeholder="method"
                 onChange={(e) => updateMethod(method.id, { name: e.target.value })}
               />
               <input
-                className="h-6 px-1.5 text-[11px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
+                className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
                 value={method.returnType}
                 placeholder="戻り値型"
                 onChange={(e) => updateMethod(method.id, { returnType: e.target.value })}
               />
               <button
                 onClick={() => deleteMethod(method.id)}
-                className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-xs"
+                className="flex items-center justify-center text-soft-light hover:text-soft-red transition-colors text-xs"
               >
                 ✕
               </button>
             </div>
             {/* 引数 */}
-            <div className="ml-3 border-l border-figma-border pl-2">
+            <div className="ml-3 border-l border-soft-border pl-2">
               {method.parameters.map((param, idx) => (
                 <div key={idx} className="grid grid-cols-[1fr_1fr_16px] gap-1 items-center mb-1">
                   <input
-                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
+                    className="h-5 px-1.5 text-[10px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
                     value={param.name}
                     placeholder="param"
                     onChange={(e) => updateParameter(method.id, idx, { name: e.target.value })}
                   />
                   <input
-                    className="h-5 px-1.5 text-[10px] bg-figma-canvas border border-figma-border rounded focus:outline-none focus:border-figma-blue min-w-0"
+                    className="h-5 px-1.5 text-[10px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
                     value={param.type}
                     placeholder="Type"
                     onChange={(e) => updateParameter(method.id, idx, { type: e.target.value })}
                   />
                   <button
                     onClick={() => deleteParameter(method.id, idx)}
-                    className="flex items-center justify-center text-figma-light hover:text-figma-red transition-colors text-[10px]"
+                    className="flex items-center justify-center text-soft-light hover:text-soft-red transition-colors text-[10px]"
                   >
                     ✕
                   </button>
@@ -250,7 +250,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
               ))}
               <button
                 onClick={() => addParameter(method.id)}
-                className="text-[10px] text-figma-muted hover:text-figma-blue transition-colors mt-0.5"
+                className="text-[10px] text-soft-muted hover:text-soft-primary transition-colors mt-0.5"
               >
                 + 引数追加
               </button>
@@ -259,7 +259,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
         ))}
         <button
           onClick={addMethod}
-          className="text-[11px] text-figma-blue hover:text-figma-blue-hover transition-colors"
+          className="text-[11px] text-soft-primary hover:text-soft-primary-hover transition-colors"
         >
           + メソッドを追加
         </button>
@@ -268,7 +268,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
       {/* 削除 */}
       <button
         onClick={() => onDelete(node.id)}
-        className="flex items-center justify-center gap-1.5 text-[11px] text-figma-red hover:text-red-700 px-3 py-3 transition-colors"
+        className="flex items-center justify-center gap-1.5 text-[11px] text-soft-red hover:text-red-700 px-3 py-3 transition-colors"
       >
         ノードを削除
       </button>
