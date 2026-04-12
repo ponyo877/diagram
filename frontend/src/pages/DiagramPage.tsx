@@ -293,7 +293,7 @@ export default function DiagramPage() {
     if (!id) { navigate('/'); return }
     const check = async () => {
       try {
-        const res = await fetch(`/api/diagrams/${id}`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/diagrams/${id}`)
         if (res.status === 404) setStatus('not_found')
         else if (res.ok) setStatus('found')
         else setStatus('error')

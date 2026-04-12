@@ -27,7 +27,7 @@ export default function Landing() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/diagrams', { method: 'POST' })
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/diagrams`, { method: 'POST' })
       if (!res.ok) throw new Error('ダイアグラムの作成に失敗しました')
       const { id } = await res.json()
       navigate(`/diagram/${id}`)

@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "diagramer"
-database_id = "placeholder-replace-after-d1-create"
+database_id = "88805ac1-7f4b-49c2-812d-84a863aebe2d"
 
 # --- Durable Objects ---
 [durable_objects]
@@ -17,7 +17,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["DiagramRoom"]
+new_sqlite_classes = ["DiagramRoom"]
 
 # --- Cron Triggers (daily at 00:00 UTC) ---
 [triggers]
