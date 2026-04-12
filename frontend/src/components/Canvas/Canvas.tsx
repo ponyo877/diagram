@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -17,6 +17,7 @@ import type {
 import '@xyflow/react/dist/style.css'
 import type { NodeType } from '../../types/diagram'
 import type { AwarenessState } from '../../hooks/useCollaboration'
+import { createNode } from '../../utils/nodeFactory'
 import ClassNode from './nodes/ClassNode'
 import EnumNode from './nodes/EnumNode'
 import NoteNode from './nodes/NoteNode'
@@ -51,6 +52,8 @@ interface CanvasProps {
   onCursorLeave: () => void
 }
 
+const PREVIEW_ID = '__preview__'
+
 export default function Canvas({
   nodes,
   edges,
@@ -66,6 +69,7 @@ export default function Canvas({
   onCursorLeave,
 }: CanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
+  const [previewPos, setPreviewPos] = useState<{ x: number; y: number } | null>(null)
 
   const handlePaneClick = useCallback(
     (event: React.MouseEvent) => {
@@ -77,6 +81,7 @@ export default function Canvas({
         y: event.clientY,
       })
       onCreateNode(selectedPalette, position)
+      setPreviewPos(null)
     },
     [selectedPalette, screenToFlowPosition, onCreateNode, onNodeSelect, onEdgeSelect],
   )
@@ -85,28 +90,60 @@ export default function Canvas({
     (event: React.MouseEvent) => {
       const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
       onCursorMove(flowPos)
+      if (selectedPalette) {
+        setPreviewPos(flowPos)
+      }
     },
-    [screenToFlowPosition, onCursorMove],
+    [screenToFlowPosition, onCursorMove, selectedPalette],
   )
+
+  const handleMouseLeave = useCallback(() => {
+    onCursorLeave()
+    setPreviewPos(null)
+  }, [onCursorLeave])
+
+  // プレビューノード生成
+  const previewNode = useMemo(() => {
+    if (!selectedPalette || !previewPos) return null
+    const node = createNode(selectedPalette, previewPos, PREVIEW_ID)
+    return {
+      ...node,
+      draggable: false,
+      selectable: false,
+      connectable: false,
+      style: { ...node.style, opacity: 0.4, pointerEvents: 'none' as const },
+    }
+  }, [selectedPalette, previewPos])
+
+  // プレビューノードを含む全ノード
+  const allNodes = useMemo(() => {
+    if (!previewNode) return nodes
+    return [...nodes, previewNode]
+  }, [nodes, previewNode])
 
   return (
     <div
       className="w-full h-full"
       style={{ cursor: selectedPalette ? 'crosshair' : 'default' }}
       onMouseMove={handleMouseMove}
-      onMouseLeave={onCursorLeave}
+      onMouseLeave={handleMouseLeave}
     >
       <ReactFlow
-        nodes={nodes}
+        nodes={allNodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{ type: 'diagram' }}
-        onNodesChange={onNodesChange}
+        onNodesChange={(changes) => {
+          // プレビューノードへの変更を無視
+          const filtered = changes.filter((c) => !('id' in c && c.id === PREVIEW_ID))
+          if (filtered.length > 0) onNodesChange(filtered)
+        }}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onPaneClick={handlePaneClick}
         onNodeClick={(_, node) => {
+          if (node.id === PREVIEW_ID) return
           onNodeSelect(node)
           onEdgeSelect(null)
         }}
