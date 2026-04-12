@@ -1,0 +1,28 @@
+name = "diagramer"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# --- D1 Database ---
+[[d1_databases]]
+binding = "DB"
+database_name = "diagramer"
+database_id = "placeholder-replace-after-d1-create"
+
+# --- Durable Objects ---
+[durable_objects]
+bindings = [
+  { name = "DIAGRAM_ROOM", class_name = "DiagramRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["DiagramRoom"]
+
+# --- Cron Triggers (daily at 00:00 UTC) ---
+[triggers]
+crons = ["0 0 * * *"]
+
+# --- Development ---
+[dev]
+port = 8787
