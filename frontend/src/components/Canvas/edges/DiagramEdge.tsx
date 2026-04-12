@@ -84,7 +84,7 @@ export default function DiagramEdge({
 }: EdgeProps) {
   const edgeData = data as unknown as DiagramEdgeData
   const edgeType = edgeData?.edgeType ?? 'association'
-  const { onUpdateEdge, onDeleteEdge, toolbarPosition } = useEdgeActions()
+  const { onUpdateEdge, onDeleteEdge, toolbarPosition, sourceNodeName, targetNodeName } = useEdgeActions()
 
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
@@ -225,9 +225,11 @@ export default function DiagramEdge({
 
               <div className="w-px h-4 bg-soft-border mx-0.5" />
 
-              {/* 始点多重度 */}
+              {/* 始点多重度（sourceノード名を表示） */}
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-soft-light">S</span>
+                <span className="text-[9px] text-soft-muted max-w-[40px] truncate" title={sourceNodeName ?? '始点'}>
+                  {sourceNodeName ? sourceNodeName.slice(0, 4) : '始'}
+                </span>
                 <select
                   value={edgeData?.sourceMultiplicity ?? ''}
                   onChange={(e) => update({ sourceMultiplicity: e.target.value ? (e.target.value as Multiplicity) : undefined })}
@@ -239,9 +241,11 @@ export default function DiagramEdge({
                 </select>
               </div>
 
-              {/* 終点多重度 */}
+              {/* 終点多重度（targetノード名を表示） */}
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-soft-light">T</span>
+                <span className="text-[9px] text-soft-muted max-w-[40px] truncate" title={targetNodeName ?? '終点'}>
+                  {targetNodeName ? targetNodeName.slice(0, 4) : '終'}
+                </span>
                 <select
                   value={edgeData?.targetMultiplicity ?? ''}
                   onChange={(e) => update({ targetMultiplicity: e.target.value ? (e.target.value as Multiplicity) : undefined })}

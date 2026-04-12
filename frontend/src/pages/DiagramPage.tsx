@@ -179,7 +179,13 @@ function DiagramEditor({ id }: { id: string }) {
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
       {/* フルスクリーンキャンバス */}
-      <EdgeActionsContext.Provider value={{ onUpdateEdge: handleUpdateEdge, onDeleteEdge: handleDeleteEdgeAndClear, toolbarPosition: edgeToolbarPos }}>
+      <EdgeActionsContext.Provider value={{
+        onUpdateEdge: handleUpdateEdge,
+        onDeleteEdge: handleDeleteEdgeAndClear,
+        toolbarPosition: edgeToolbarPos,
+        sourceNodeName: selectedEdge ? ((nodes.find((n) => n.id === selectedEdge.source)?.data as Record<string, unknown>)?.name as string ?? null) : null,
+        targetNodeName: selectedEdge ? ((nodes.find((n) => n.id === selectedEdge.target)?.data as Record<string, unknown>)?.name as string ?? null) : null,
+      }}>
       <Canvas
         nodes={nodes}
         edges={edges}
