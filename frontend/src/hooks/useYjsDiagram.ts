@@ -103,8 +103,8 @@ export function useYjsDiagram(ydoc: Y.Doc) {
   )
 
   const handleCreateNode = useCallback(
-    (type: NodeType | string, position: { x: number; y: number }) => {
-      const node = createNode(type, position)
+    (type: NodeType | string, position: { x: number; y: number }, id?: string, data?: Record<string, unknown>) => {
+      const node = createNode(type, position, id, data)
       setNodes((nds) => [...nds, node])
       ydoc.transact(() => {
         yNodes.set(node.id, node as unknown as Record<string, unknown>)

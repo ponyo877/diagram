@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ReactFlowProvider } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
@@ -7,11 +7,14 @@ import Canvas from '../components/Canvas/Canvas'
 import Palette from '../components/Palette/Palette'
 import Sidebar from '../components/Sidebar/Sidebar'
 import RemoteCursors from '../components/Cursors/RemoteCursors'
+import ExportModal from '../components/ExportModal/ExportModal'
 import { useYjsProvider } from '../hooks/useYjsProvider'
 import { useYjsDiagram } from '../hooks/useYjsDiagram'
 import { useCollaboration } from '../hooks/useCollaboration'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useUndoManager } from '../hooks/useUndoManager'
+import { exportToPlantUml } from '../utils/plantUmlExporter'
+import { nanoid } from 'nanoid'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
 
@@ -30,6 +33,9 @@ function DiagramEditor({ id }: { id: string }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [isEditingName, setIsEditingName] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [urlCopied, setUrlCopied] = useState(false)
+  const clipboardNode = useRef<Node | null>(null)
 
   const { ydoc, provider, syncStatus } = useYjsProvider(id)
   const {
@@ -59,9 +65,10 @@ function DiagramEditor({ id }: { id: string }) {
         setSelectedPalette(null)
         setSelectedNodeId(null)
         setSelectedEdgeId(null)
+        setShowExportModal(false)
         return
       }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedNodeId) handleDeleteNode(selectedNodeId)
         if (selectedEdgeId) handleDeleteEdge(selectedEdgeId)
         return
@@ -69,11 +76,29 @@ function DiagramEditor({ id }: { id: string }) {
       if (e.ctrlKey || e.metaKey) {
         if (e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
         if (e.key === 'z') { e.preventDefault(); undo(); return }
+        if (e.key === 'c' && selectedNodeId) {
+          e.preventDefault()
+          const node = nodes.find((n) => n.id === selectedNodeId)
+          if (node) clipboardNode.current = node
+          return
+        }
+        if (e.key === 'v' && clipboardNode.current) {
+          e.preventDefault()
+          const src = clipboardNode.current
+          const newId = nanoid()
+          handleCreateNode(
+            src.type ?? 'class',
+            { x: src.position.x + 20, y: src.position.y + 20 },
+            newId,
+            { ...src.data },
+          )
+          return
+        }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, handleDeleteNode, handleDeleteEdge, undo, redo])
+  }, [selectedNodeId, selectedEdgeId, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode])
 
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
   const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
@@ -112,14 +137,40 @@ function DiagramEditor({ id }: { id: string }) {
     [handleCreateNode],
   )
 
+  const handleExport = useCallback(() => {
+    setShowExportModal(true)
+  }, [])
+
+  const handleCopyUrl = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setUrlCopied(true)
+      setTimeout(() => setUrlCopied(false), 2000)
+    })
+  }, [])
+
+  const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* ツールバー */}
-      <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shadow-sm z-10 shrink-0">
+      <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shadow-sm z-10 shrink-0">
         <span className="font-bold text-blue-600 text-lg">Diagramer</span>
         <span className="text-xs text-gray-400 font-mono">{id}</span>
         <div className="flex-1" />
         <RemoteCursors remoteUsers={remoteUsers} />
+        <button
+          onClick={handleCopyUrl}
+          className="text-xs px-3 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+          title="URLをコピー"
+        >
+          {urlCopied ? 'コピーしました！' : 'URLをコピー'}
+        </button>
+        <button
+          onClick={handleExport}
+          className="text-xs px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+        >
+          PlantUML出力
+        </button>
         <SaveStatusBadge status={saveStatus} />
         {isEditingName ? (
           <input
@@ -167,6 +218,11 @@ function DiagramEditor({ id }: { id: string }) {
 
       {/* パレット */}
       <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
+
+      {/* PlantUMLエクスポートモーダル */}
+      {showExportModal && (
+        <ExportModal text={plantUmlText} onClose={() => setShowExportModal(false)} />
+      )}
     </div>
   )
 }
