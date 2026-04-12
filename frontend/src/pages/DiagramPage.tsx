@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ReactFlowProvider } from '@xyflow/react'
+import { ReactFlowProvider, useReactFlow } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
 import type { NodeType } from '../types/diagram'
 import Canvas from '../components/Canvas/Canvas'
@@ -88,6 +88,7 @@ function DiagramEditor({ id }: { id: string }) {
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
+  const { fitView } = useReactFlow()
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -185,7 +186,9 @@ function DiagramEditor({ id }: { id: string }) {
   const handleImport = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     handleImportDiagram(newNodes, newEdges)
     setShowImportModal(false)
-  }, [handleImportDiagram])
+    // Fit view after import (slight delay to let React Flow render the new nodes)
+    setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 100)
+  }, [handleImportDiagram, fitView])
 
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
 

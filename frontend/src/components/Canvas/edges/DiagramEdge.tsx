@@ -86,6 +86,9 @@ export default function DiagramEdge({
   const edgeType = edgeData?.edgeType ?? 'association'
   const { onUpdateEdge, onDeleteEdge, toolbarPosition, sourceNodeName, targetNodeName } = useEdgeActions()
 
+  // Display multiplicity in standard UML notation
+  const displayMult = (m: string) => m === '0..n' ? '0..*' : m === '1..n' ? '1..*' : m
+
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
@@ -174,7 +177,7 @@ export default function DiagramEdge({
               zIndex: 1000,
             }}
           >
-            {edgeData.sourceMultiplicity}
+            {displayMult(edgeData.sourceMultiplicity)}
           </div>
         </EdgeLabelRenderer>
       )}
@@ -191,7 +194,7 @@ export default function DiagramEdge({
               zIndex: 1000,
             }}
           >
-            {edgeData.targetMultiplicity}
+            {displayMult(edgeData.targetMultiplicity)}
           </div>
         </EdgeLabelRenderer>
       )}
