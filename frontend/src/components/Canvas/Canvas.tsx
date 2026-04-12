@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -16,11 +16,14 @@ import type {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { NodeType } from '../../types/diagram'
+import type { AwarenessState } from '../../hooks/useCollaboration'
+import { createNode } from '../../utils/nodeFactory'
 import ClassNode from './nodes/ClassNode'
 import EnumNode from './nodes/EnumNode'
 import NoteNode from './nodes/NoteNode'
 import PackageNode from './nodes/PackageNode'
 import DiagramEdge from './edges/DiagramEdge'
+import CanvasCursors from '../Cursors/CanvasCursors'
 
 const nodeTypes: NodeTypes = {
   class: ClassNode,
@@ -43,8 +46,13 @@ interface CanvasProps {
   selectedPalette: NodeType | null
   onCreateNode: (type: string, position: { x: number; y: number }) => void
   onNodeSelect: (node: Node | null) => void
-  onEdgeSelect: (edge: Edge | null) => void
+  onEdgeSelect: (edge: Edge | null, clickPos?: { x: number; y: number }) => void
+  remoteUsers: Map<number, AwarenessState>
+  onCursorMove: (pos: { x: number; y: number }) => void
+  onCursorLeave: () => void
 }
+
+const PREVIEW_ID = '__preview__'
 
 export default function Canvas({
   nodes,
@@ -56,8 +64,12 @@ export default function Canvas({
   onCreateNode,
   onNodeSelect,
   onEdgeSelect,
+  remoteUsers,
+  onCursorMove,
+  onCursorLeave,
 }: CanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
+  const [previewPos, setPreviewPos] = useState<{ x: number; y: number } | null>(null)
 
   const handlePaneClick = useCallback(
     (event: React.MouseEvent) => {
@@ -69,31 +81,75 @@ export default function Canvas({
         y: event.clientY,
       })
       onCreateNode(selectedPalette, position)
+      setPreviewPos(null)
     },
     [selectedPalette, screenToFlowPosition, onCreateNode, onNodeSelect, onEdgeSelect],
   )
+
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      onCursorMove(flowPos)
+      if (selectedPalette) {
+        setPreviewPos(flowPos)
+      }
+    },
+    [screenToFlowPosition, onCursorMove, selectedPalette],
+  )
+
+  const handleMouseLeave = useCallback(() => {
+    onCursorLeave()
+    setPreviewPos(null)
+  }, [onCursorLeave])
+
+  // プレビューノード生成
+  const previewNode = useMemo(() => {
+    if (!selectedPalette || !previewPos) return null
+    const node = createNode(selectedPalette, previewPos, PREVIEW_ID)
+    return {
+      ...node,
+      draggable: false,
+      selectable: false,
+      connectable: false,
+      style: { ...node.style, opacity: 0.4, pointerEvents: 'none' as const },
+    }
+  }, [selectedPalette, previewPos])
+
+  // プレビューノードを含む全ノード
+  const allNodes = useMemo(() => {
+    if (!previewNode) return nodes
+    return [...nodes, previewNode]
+  }, [nodes, previewNode])
 
   return (
     <div
       className="w-full h-full"
       style={{ cursor: selectedPalette ? 'crosshair' : 'default' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       <ReactFlow
-        nodes={nodes}
+        nodes={allNodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{ type: 'diagram' }}
-        onNodesChange={onNodesChange}
+        onNodesChange={(changes) => {
+          // プレビューノードへの変更を無視
+          const filtered = changes.filter((c) => !('id' in c && c.id === PREVIEW_ID))
+          if (filtered.length > 0) onNodesChange(filtered)
+        }}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onPaneClick={handlePaneClick}
         onNodeClick={(_, node) => {
+          if (node.id === PREVIEW_ID) return
           onNodeSelect(node)
           onEdgeSelect(null)
         }}
-        onEdgeClick={(_, edge) => {
-          onEdgeSelect(edge)
+        onEdgeClick={(event, edge) => {
+          const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+          onEdgeSelect(edge, flowPos)
           onNodeSelect(null)
         }}
         deleteKeyCode={null}
@@ -106,6 +162,8 @@ export default function Canvas({
           size={1}
           color="#ddd8cf"
         />
+        {/* リモートユーザーのカーソル表示 */}
+        <CanvasCursors remoteUsers={remoteUsers} />
       </ReactFlow>
     </div>
   )

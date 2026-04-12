@@ -60,7 +60,7 @@ export default function ClassNode({ id, data, type, selected }: NodeProps) {
 
   return (
     <div
-      className={`bg-white ${borderClass} rounded-xl overflow-hidden min-w-[160px] select-none`}
+      className={`bg-white ${borderClass} rounded-xl overflow-hidden w-full h-full min-w-[160px] select-none`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -73,10 +73,10 @@ export default function ClassNode({ id, data, type, selected }: NodeProps) {
       />
 
       {HANDLE_POSITIONS.map((pos) => (
-        <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
+        <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
       ))}
       {HANDLE_POSITIONS.map((pos) => (
-        <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
+        <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
       ))}
 
       {/* ヘッダー */}

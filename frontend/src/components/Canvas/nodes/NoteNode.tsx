@@ -1,13 +1,17 @@
 import { useState } from 'react'
-import { Handle, Position, NodeResizer } from '@xyflow/react'
+import { Handle, Position, NodeResizer, useReactFlow } from '@xyflow/react'
 import type { NodeProps } from '@xyflow/react'
 import type { NoteNodeData } from '../../../types/diagram'
 
 const HANDLE_POSITIONS = [Position.Top, Position.Right, Position.Bottom, Position.Left]
 const FOLD_SIZE = 14
 
-export default function NoteNode({ data, selected }: NodeProps) {
+export default function NoteNode({ id, data, selected }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState('')
+  const { setNodes } = useReactFlow()
+
   const nodeData = data as unknown as NoteNodeData
   const bg = nodeData.color || '#fdf5dc'
 
@@ -25,9 +29,28 @@ export default function NoteNode({ data, selected }: NodeProps) {
 
   const borderColor = selected ? '#4a9ce8' : '#e8e2d8'
 
+  const startEditing = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditContent(nodeData.content)
+    setIsEditing(true)
+  }
+
+  const commitEdit = () => {
+    setIsEditing(false)
+    setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, content: editContent } } : n)),
+    )
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsEditing(false)
+    }
+  }
+
   return (
     <div
-      className="relative min-w-[120px] min-h-[60px] select-none"
+      className="relative w-full h-full min-w-[120px] min-h-[60px] select-none"
       style={{
         backgroundColor: bg,
         border: `1px solid ${borderColor}`,
@@ -50,10 +73,10 @@ export default function NoteNode({ data, selected }: NodeProps) {
       />
 
       {HANDLE_POSITIONS.map((pos) => (
-        <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
+        <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
       ))}
       {HANDLE_POSITIONS.map((pos) => (
-        <Handle key={`${pos}-t`} type="target" position={pos} id={`${pos}-t`} style={handleStyle} />
+        <Handle key={`${pos}-s`} type="source" position={pos} id={`${pos}-s`} style={handleStyle} />
       ))}
 
       {/* 折れ角のSVG装飾 */}
@@ -70,9 +93,25 @@ export default function NoteNode({ data, selected }: NodeProps) {
       </svg>
 
       {/* テキスト内容 */}
-      <div className="px-3 pt-2 pb-2 text-[12px] text-soft-text whitespace-pre-wrap leading-relaxed">
-        {nodeData.content}
-      </div>
+      {isEditing ? (
+        <textarea
+          autoFocus
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={handleKeyDown}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full px-3 pt-2 pb-2 text-[12px] text-soft-text bg-transparent outline-none resize-none leading-relaxed"
+          style={{ minHeight: 40 }}
+        />
+      ) : (
+        <div
+          className="px-3 pt-2 pb-2 text-[12px] text-soft-text whitespace-pre-wrap leading-relaxed cursor-text"
+          onDoubleClick={startEditing}
+        >
+          {nodeData.content || '\u00A0'}
+        </div>
+      )}
     </div>
   )
 }

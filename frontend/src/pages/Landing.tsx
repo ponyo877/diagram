@@ -27,7 +27,7 @@ export default function Landing() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/diagrams', { method: 'POST' })
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/diagrams`, { method: 'POST' })
       if (!res.ok) throw new Error('ダイアグラムの作成に失敗しました')
       const { id } = await res.json()
       navigate(`/diagram/${id}`)
@@ -61,11 +61,11 @@ export default function Landing() {
         </div>
 
         <h1 className="text-4xl font-bold text-soft-text mb-3 tracking-tight text-center leading-tight">
-          UMLクラス図を、<br />
+          UMLクラス図を<br />
           <span className="text-soft-primary">リアルタイムで共同編集</span>
         </h1>
         <p className="text-soft-muted text-base mb-10 text-center max-w-sm leading-relaxed">
-          ログイン不要。URLを共有するだけで<br />チームと同時に作図できます。
+          ログイン不要でURLを共有するだけで<br />チームで同時に作図できます
         </p>
 
         {error && (
@@ -79,7 +79,7 @@ export default function Landing() {
           disabled={loading}
           className="h-11 px-8 bg-soft-primary hover:bg-soft-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-full transition-colors duration-150"
         >
-          {loading ? '作成中...' : 'クラス図を新規作成'}
+          {loading ? '作成中...' : '新規作成'}
         </button>
 
         <p className="mt-6 text-[11px] text-soft-light text-center leading-relaxed">

@@ -1,0 +1,37 @@
+name = "diagramer"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# --- Custom Domain Routes ---
+[[routes]]
+pattern = "diagramer.ponyo877.com/api/*"
+zone_name = "ponyo877.com"
+
+[[routes]]
+pattern = "diagramer.ponyo877.com/yjs/*"
+zone_name = "ponyo877.com"
+
+# --- D1 Database ---
+[[d1_databases]]
+binding = "DB"
+database_name = "diagramer"
+database_id = "88805ac1-7f4b-49c2-812d-84a863aebe2d"
+
+# --- Durable Objects ---
+[durable_objects]
+bindings = [
+  { name = "DIAGRAM_ROOM", class_name = "DiagramRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DiagramRoom"]
+
+# --- Cron Triggers (daily at 00:00 UTC) ---
+[triggers]
+crons = ["0 0 * * *"]
+
+# --- Development ---
+[dev]
+port = 8787

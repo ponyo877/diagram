@@ -14,6 +14,7 @@ import { useCollaboration } from '../hooks/useCollaboration'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useUndoManager } from '../hooks/useUndoManager'
 import { exportToPlantUml } from '../utils/plantUmlExporter'
+import { EdgeActionsContext } from '../contexts/EdgeActionsContext'
 import { nanoid } from 'nanoid'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
@@ -82,7 +83,7 @@ function DiagramEditor({ id }: { id: string }) {
     handleCreateNode, handleUpdateNode, handleDeleteNode,
     handleUpdateEdge, handleDeleteEdge,
   } = useYjsDiagram(ydoc)
-  const { userName, updateUserName, remoteUsers } = useCollaboration(provider)
+  const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
 
@@ -142,9 +143,12 @@ function DiagramEditor({ id }: { id: string }) {
     if (node) setSelectedEdgeId(null)
   }, [])
 
-  const handleEdgeSelect = useCallback((edge: Edge | null) => {
+  const [edgeToolbarPos, setEdgeToolbarPos] = useState<{ x: number; y: number } | null>(null)
+
+  const handleEdgeSelect = useCallback((edge: Edge | null, clickPos?: { x: number; y: number }) => {
     setSelectedEdgeId(edge?.id ?? null)
     if (edge) setSelectedNodeId(null)
+    setEdgeToolbarPos(clickPos ?? null)
   }, [])
 
   const handleDeleteNodeAndClear = useCallback((nodeId: string) => {
@@ -175,6 +179,13 @@ function DiagramEditor({ id }: { id: string }) {
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
       {/* フルスクリーンキャンバス */}
+      <EdgeActionsContext.Provider value={{
+        onUpdateEdge: handleUpdateEdge,
+        onDeleteEdge: handleDeleteEdgeAndClear,
+        toolbarPosition: edgeToolbarPos,
+        sourceNodeName: selectedEdge ? ((nodes.find((n) => n.id === selectedEdge.source)?.data as Record<string, unknown>)?.name as string ?? null) : null,
+        targetNodeName: selectedEdge ? ((nodes.find((n) => n.id === selectedEdge.target)?.data as Record<string, unknown>)?.name as string ?? null) : null,
+      }}>
       <Canvas
         nodes={nodes}
         edges={edges}
@@ -185,7 +196,11 @@ function DiagramEditor({ id }: { id: string }) {
         onCreateNode={handleCreateNodeAndClear}
         onNodeSelect={handleNodeSelect}
         onEdgeSelect={handleEdgeSelect}
+        remoteUsers={remoteUsers}
+        onCursorMove={updateCursorPosition}
+        onCursorLeave={clearCursorPosition}
       />
+      </EdgeActionsContext.Provider>
 
       {/* 左上: 透過ロゴ */}
       <button
@@ -290,7 +305,7 @@ export default function DiagramPage() {
     if (!id) { navigate('/'); return }
     const check = async () => {
       try {
-        const res = await fetch(`/api/diagrams/${id}`)
+        const res = await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/diagrams/${id}`)
         if (res.status === 404) setStatus('not_found')
         else if (res.ok) setStatus('found')
         else setStatus('error')
