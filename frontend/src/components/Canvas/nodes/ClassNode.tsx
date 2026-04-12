@@ -60,7 +60,7 @@ export default function ClassNode({ id, data, type, selected }: NodeProps) {
 
   return (
     <div
-      className={`bg-white ${borderClass} rounded-xl overflow-hidden min-w-[160px] select-none`}
+      className={`bg-white ${borderClass} rounded-xl overflow-hidden w-full h-full min-w-[160px] select-none`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

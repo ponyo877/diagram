@@ -50,7 +50,7 @@ export default function NoteNode({ id, data, selected }: NodeProps) {
 
   return (
     <div
-      className="relative min-w-[120px] min-h-[60px] select-none"
+      className="relative w-full h-full min-w-[120px] min-h-[60px] select-none"
       style={{
         backgroundColor: bg,
         border: `1px solid ${borderColor}`,
