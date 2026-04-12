@@ -206,7 +206,7 @@ export function importFromPlantUml(text: string): ImportResult {
 
       // パースできない行
       if (line !== '}') {
-        warnings.push(`行${lineNum}: パースできません: "${line}"`)
+        warnings.push(`Line ${lineNum}: Cannot parse: "${line}"`)
       }
       continue
     }
@@ -263,7 +263,7 @@ export function importFromPlantUml(text: string): ImportResult {
         continue
       }
 
-      warnings.push(`行${lineNum}: クラス内でパースできません: "${line}"`)
+      warnings.push(`Line ${lineNum}: Cannot parse inside class: "${line}"`)
       continue
     }
 
@@ -290,11 +290,11 @@ export function importFromPlantUml(text: string): ImportResult {
   // パース途中で終わった場合の救済
   if (state === 'IN_CLASS') {
     finishClassNode()
-    warnings.push('クラス定義が閉じられていません（}が不足）')
+    warnings.push('Unclosed class definition (missing })')
   }
   if (state === 'IN_ENUM') {
     finishEnumNode()
-    warnings.push('enum定義が閉じられていません（}が不足）')
+    warnings.push('Unclosed enum definition (missing })')
   }
 
   return { nodes, edges, warnings }
@@ -351,7 +351,7 @@ export function importFromPlantUml(text: string): ImportResult {
     const [, leftName, leftMult, arrow, , rightMult, rightName] = match
     const arrowInfo = ARROW_MAP[arrow]
     if (!arrowInfo) {
-      warnings.push(`行${lineNum}: 未対応の矢印: "${arrow}"`)
+      warnings.push(`Line ${lineNum}: Unsupported arrow: "${arrow}"`)
       return true
     }
 
@@ -363,7 +363,7 @@ export function importFromPlantUml(text: string): ImportResult {
     const sourceId = nameToId.get(srcName)
     const targetId = nameToId.get(tgtName)
     if (!sourceId || !targetId) {
-      warnings.push(`行${lineNum}: ノード "${!sourceId ? srcName : tgtName}" が見つかりません`)
+      warnings.push(`Line ${lineNum}: Node "${!sourceId ? srcName : tgtName}" not found`)
       return true
     }
 

@@ -15,12 +15,12 @@ interface SidebarProps {
 }
 
 const panelTitle = (node: Node | null, edge: Edge | null) => {
-  if (edge) return 'エッジ'
+  if (edge) return 'Edge'
   if (!node) return ''
   const labels: Record<string, string> = {
-    class: 'クラス', interface: 'I/F', enum: 'Enum', note: 'ノート', package: 'パッケージ',
+    class: 'Class', interface: 'I/F', enum: 'Enum', note: 'Note', package: 'Package',
   }
-  return labels[node.type ?? ''] ?? 'プロパティ'
+  return labels[node.type ?? ''] ?? 'Properties'
 }
 
 export default function Sidebar({

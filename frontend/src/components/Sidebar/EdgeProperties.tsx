@@ -8,16 +8,16 @@ interface EdgePropertiesProps {
 }
 
 const EDGE_TYPE_OPTIONS: { value: EdgeType; label: string }[] = [
-  { value: 'association', label: '関連 (Association)' },
-  { value: 'generalization', label: '汎化 (Generalization)' },
-  { value: 'realization', label: '実現 (Realization)' },
-  { value: 'dependency', label: '依存 (Dependency)' },
-  { value: 'aggregation', label: '集約 (Aggregation)' },
-  { value: 'composition', label: '合成 (Composition)' },
+  { value: 'association', label: 'Association' },
+  { value: 'generalization', label: 'Generalization' },
+  { value: 'realization', label: 'Realization' },
+  { value: 'dependency', label: 'Dependency' },
+  { value: 'aggregation', label: 'Aggregation' },
+  { value: 'composition', label: 'Composition' },
 ]
 
 const MULTIPLICITY_OPTIONS: { value: Multiplicity | ''; label: string }[] = [
-  { value: '', label: '未設定' },
+  { value: '', label: 'None' },
   { value: '1', label: '1' },
   { value: '0..1', label: '0..1' },
   { value: '0..n', label: '0..n' },
@@ -64,24 +64,24 @@ export default function EdgeProperties({ edge, onUpdate, onDelete }: EdgePropert
 
   return (
     <div className="flex flex-col">
-      <PropSection title="関係">
+      <PropSection title="Relation">
         <PropSelect
-          label="種別"
+          label="Type"
           value={data.edgeType}
           onChange={(val) => update({ edgeType: val as EdgeType })}
           options={EDGE_TYPE_OPTIONS}
         />
       </PropSection>
 
-      <PropSection title="多重度">
+      <PropSection title="Multiplicity">
         <PropSelect
-          label="始点側"
+          label="Source"
           value={data.sourceMultiplicity ?? ''}
           onChange={(val) => update({ sourceMultiplicity: val ? (val as Multiplicity) : undefined })}
           options={MULTIPLICITY_OPTIONS}
         />
         <PropSelect
-          label="終点側"
+          label="Target"
           value={data.targetMultiplicity ?? ''}
           onChange={(val) => update({ targetMultiplicity: val ? (val as Multiplicity) : undefined })}
           options={MULTIPLICITY_OPTIONS}
@@ -92,7 +92,7 @@ export default function EdgeProperties({ edge, onUpdate, onDelete }: EdgePropert
         onClick={() => onDelete(edge.id)}
         className="flex items-center justify-center gap-1.5 text-[11px] text-soft-red hover:text-red-700 px-3 py-3 transition-colors"
       >
-        エッジを削除
+        Delete Edge
       </button>
     </div>
   )

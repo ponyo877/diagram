@@ -25,8 +25,8 @@ export default function NoteProperties({ node, onUpdate, onDelete }: NotePropert
 
   return (
     <div className="flex flex-col">
-      <PropSection title="内容">
-        <label className="block text-[10px] text-soft-muted mb-1">テキスト</label>
+      <PropSection title="Content">
+        <label className="block text-[10px] text-soft-muted mb-1">Text</label>
         <textarea
           className="w-full px-2 py-1.5 text-[12px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary focus:bg-white transition-colors resize-none leading-relaxed"
           rows={6}
@@ -35,9 +35,9 @@ export default function NoteProperties({ node, onUpdate, onDelete }: NotePropert
         />
       </PropSection>
 
-      <PropSection title="スタイル">
+      <PropSection title="Style">
         <div className="mb-2">
-          <label className="block text-[10px] text-soft-muted mb-1">背景色</label>
+          <label className="block text-[10px] text-soft-muted mb-1">Color</label>
           <div className="flex gap-2 items-center">
             <input
               type="color"
@@ -58,7 +58,7 @@ export default function NoteProperties({ node, onUpdate, onDelete }: NotePropert
         onClick={() => onDelete(node.id)}
         className="flex items-center justify-center gap-1.5 text-[11px] text-soft-red hover:text-red-700 px-3 py-3 transition-colors"
       >
-        ノードを削除
+        Delete Node
       </button>
     </div>
   )

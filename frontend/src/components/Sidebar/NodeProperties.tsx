@@ -110,30 +110,30 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
 
   return (
     <div className="flex flex-col">
-      {/* 基本情報 */}
-      <PropSection title="基本情報">
+      {/* General */}
+      <PropSection title="General">
         <PropInput
-          label={isInterface ? 'インターフェース名' : 'クラス名'}
+          label={isInterface ? 'Interface Name' : 'Class Name'}
           value={data.name}
           onChange={(e) => update({ name: e.target.value })}
         />
         {isInterface ? (
           <div className="mb-2">
-            <label className="block text-[10px] text-soft-muted mb-1">ステレオタイプ</label>
+            <label className="block text-[10px] text-soft-muted mb-1">Stereotype</label>
             <div className="h-7 px-2 flex items-center text-[12px] bg-soft-input border border-soft-border rounded text-soft-light font-mono">
               {'<<interface>>'}
             </div>
           </div>
         ) : (
           <PropInput
-            label="ステレオタイプ"
+            label="Stereotype"
             value={data.stereotype}
             placeholder="例: <<abstract>>"
             onChange={(e) => update({ stereotype: e.target.value })}
           />
         )}
         <div className="mb-2">
-          <label className="block text-[10px] text-soft-muted mb-1">背景色</label>
+          <label className="block text-[10px] text-soft-muted mb-1">Color</label>
           <div className="flex gap-2 items-center">
             <input
               type="color"
@@ -151,7 +151,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
       </PropSection>
 
       {/* 属性 */}
-      <PropSection title="属性">
+      <PropSection title="Attributes">
         {data.attributes.map((attr) => (
           <div key={attr.id} className="grid grid-cols-[28px_1fr_1fr_16px] gap-1 items-center mb-1.5">
             <select
@@ -166,13 +166,13 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
             <input
               className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
               value={attr.name}
-              placeholder="名前"
+              placeholder="Name"
               onChange={(e) => updateAttribute(attr.id, { name: e.target.value })}
             />
             <input
               className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
               value={attr.type}
-              placeholder="型"
+              placeholder="Type"
               onChange={(e) => updateAttribute(attr.id, { type: e.target.value })}
             />
             <button
@@ -187,12 +187,12 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
           onClick={addAttribute}
           className="text-[11px] text-soft-primary hover:text-soft-primary-hover transition-colors mt-1"
         >
-          + 属性を追加
+          + Add Attribute
         </button>
       </PropSection>
 
       {/* メソッド */}
-      <PropSection title="メソッド">
+      <PropSection title="Methods">
         {data.methods.map((method) => (
           <div key={method.id} className="mb-3">
             <div className="grid grid-cols-[28px_1fr_1fr_16px] gap-1 items-center mb-1">
@@ -214,7 +214,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
               <input
                 className="h-6 px-1.5 text-[11px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary min-w-0"
                 value={method.returnType}
-                placeholder="戻り値型"
+                placeholder="Return"
                 onChange={(e) => updateMethod(method.id, { returnType: e.target.value })}
               />
               <button
@@ -252,7 +252,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
                 onClick={() => addParameter(method.id)}
                 className="text-[10px] text-soft-muted hover:text-soft-primary transition-colors mt-0.5"
               >
-                + 引数追加
+                + Add Param
               </button>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
           onClick={addMethod}
           className="text-[11px] text-soft-primary hover:text-soft-primary-hover transition-colors"
         >
-          + メソッドを追加
+          + Add Method
         </button>
       </PropSection>
 
@@ -270,7 +270,7 @@ export default function NodeProperties({ node, onUpdate, onDelete }: NodePropert
         onClick={() => onDelete(node.id)}
         className="flex items-center justify-center gap-1.5 text-[11px] text-soft-red hover:text-red-700 px-3 py-3 transition-colors"
       >
-        ノードを削除
+        Delete Node
       </button>
     </div>
   )

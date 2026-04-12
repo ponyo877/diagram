@@ -44,11 +44,11 @@ export default function ExportModal({ text, onClose }: ExportModalProps) {
       >
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 h-12 border-b border-soft-border shrink-0">
-          <span className="text-sm font-bold text-soft-text">PlantUML 出力</span>
+          <span className="text-sm font-bold text-soft-text">PlantUML Export</span>
           <button
             onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-soft-hover text-soft-muted hover:text-soft-text transition-colors text-base leading-none"
-            title="閉じる"
+            title="Close"
           >
             ×
           </button>
@@ -65,13 +65,13 @@ export default function ExportModal({ text, onClose }: ExportModalProps) {
             onClick={handleCopy}
             className="h-8 px-4 text-xs border border-soft-border rounded-full hover:bg-soft-hover transition-colors text-soft-text"
           >
-            {copied ? '✓ コピー済み' : 'コピー'}
+            {copied ? '✓ Copied' : 'Copy'}
           </button>
           <button
             onClick={handleDownload}
             className="h-8 px-4 text-xs bg-soft-primary hover:bg-soft-primary-hover text-white rounded-full transition-colors"
           >
-            .puml でダウンロード
+            Download .puml
           </button>
         </div>
       </div>

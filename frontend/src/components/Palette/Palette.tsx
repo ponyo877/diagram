@@ -3,7 +3,7 @@ import type { NodeType } from '../../types/diagram'
 const PALETTE_ITEMS: { type: NodeType; label: string; engLabel: string; shortcut: string; svg: React.ReactNode }[] = [
   {
     type: 'class',
-    label: 'クラス',
+    label: 'Class',
     engLabel: 'Class',
     shortcut: 'C',
     svg: (
@@ -16,7 +16,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; engLabel: string; shortcut
   },
   {
     type: 'interface',
-    label: 'インターフェース',
+    label: 'Interface',
     engLabel: 'I/F',
     shortcut: 'I',
     svg: (
@@ -27,7 +27,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; engLabel: string; shortcut
   },
   {
     type: 'enum',
-    label: '列挙型',
+    label: 'Enum',
     engLabel: 'Enum',
     shortcut: 'E',
     svg: (
@@ -40,7 +40,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; engLabel: string; shortcut
   },
   {
     type: 'note',
-    label: 'ノート',
+    label: 'Note',
     engLabel: 'Note',
     shortcut: 'N',
     svg: (
@@ -54,7 +54,7 @@ const PALETTE_ITEMS: { type: NodeType; label: string; engLabel: string; shortcut
   },
   {
     type: 'package',
-    label: 'パッケージ',
+    label: 'Package',
     engLabel: 'Pkg',
     shortcut: 'P',
     svg: (

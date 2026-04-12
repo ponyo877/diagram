@@ -6,14 +6,14 @@ import { useEdgeActions } from '../../../contexts/EdgeActionsContext'
 const EDGE_TYPES: { value: EdgeType; title: string; icon: React.ReactNode }[] = [
   {
     value: 'association',
-    title: '関連',
+    title: 'Assoc',
     icon: (
       <svg width="20" height="12" viewBox="0 0 20 12"><line x1="0" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="1.5" /></svg>
     ),
   },
   {
     value: 'generalization',
-    title: '汎化',
+    title: 'Inherit',
     icon: (
       <svg width="20" height="12" viewBox="0 0 20 12">
         <line x1="0" y1="6" x2="13" y2="6" stroke="currentColor" strokeWidth="1.5" />
@@ -23,7 +23,7 @@ const EDGE_TYPES: { value: EdgeType; title: string; icon: React.ReactNode }[] = 
   },
   {
     value: 'realization',
-    title: '実現',
+    title: 'Realize',
     icon: (
       <svg width="20" height="12" viewBox="0 0 20 12">
         <line x1="0" y1="6" x2="13" y2="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
@@ -33,7 +33,7 @@ const EDGE_TYPES: { value: EdgeType; title: string; icon: React.ReactNode }[] = 
   },
   {
     value: 'dependency',
-    title: '依存',
+    title: 'Depend',
     icon: (
       <svg width="20" height="12" viewBox="0 0 20 12">
         <line x1="0" y1="6" x2="15" y2="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
@@ -43,7 +43,7 @@ const EDGE_TYPES: { value: EdgeType; title: string; icon: React.ReactNode }[] = 
   },
   {
     value: 'aggregation',
-    title: '集約',
+    title: 'Aggreg',
     icon: (
       <svg width="20" height="12" viewBox="0 0 20 12">
         <polygon points="0,6 5,2 10,6 5,10" fill="white" stroke="currentColor" strokeWidth="1.2" />
@@ -53,7 +53,7 @@ const EDGE_TYPES: { value: EdgeType; title: string; icon: React.ReactNode }[] = 
   },
   {
     value: 'composition',
-    title: '合成',
+    title: 'Compos',
     icon: (
       <svg width="20" height="12" viewBox="0 0 20 12">
         <polygon points="0,6 5,2 10,6 5,10" fill="currentColor" stroke="currentColor" strokeWidth="1.2" />
@@ -162,7 +162,7 @@ export default function DiagramEdge({
         markerStart={markerStartUrl}
       />
 
-      {/* 多重度ラベル（始点側） */}
+      {/* 多重度ラベル（Source側） */}
       {edgeData?.sourceMultiplicity && (
         <EdgeLabelRenderer>
           <div
@@ -179,7 +179,7 @@ export default function DiagramEdge({
         </EdgeLabelRenderer>
       )}
 
-      {/* 多重度ラベル（終点側） */}
+      {/* 多重度ラベル（Target側） */}
       {edgeData?.targetMultiplicity && (
         <EdgeLabelRenderer>
           <div
@@ -227,9 +227,9 @@ export default function DiagramEdge({
 
               <div className="w-px h-4 bg-soft-border mx-0.5" />
 
-              {/* 始点多重度（sourceノード名を表示） */}
+              {/* Source多重度（sourceノード名を表示） */}
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-soft-muted max-w-[40px] truncate" title={sourceNodeName ?? '始点'}>
+                <span className="text-[9px] text-soft-muted max-w-[40px] truncate" title={sourceNodeName ?? 'Source'}>
                   {sourceNodeName ? sourceNodeName.slice(0, 4) : '始'}
                 </span>
                 <select
@@ -243,9 +243,9 @@ export default function DiagramEdge({
                 </select>
               </div>
 
-              {/* 終点多重度（targetノード名を表示） */}
+              {/* Target多重度（targetノード名を表示） */}
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-soft-muted max-w-[40px] truncate" title={targetNodeName ?? '終点'}>
+                <span className="text-[9px] text-soft-muted max-w-[40px] truncate" title={targetNodeName ?? 'Target'}>
                   {targetNodeName ? targetNodeName.slice(0, 4) : '終'}
                 </span>
                 <select
@@ -263,7 +263,7 @@ export default function DiagramEdge({
 
               {/* 削除 */}
               <button
-                title="エッジを削除"
+                title="Delete Edge"
                 onClick={() => onDeleteEdge(id)}
                 className="w-6 h-6 flex items-center justify-center rounded-lg text-soft-light hover:text-soft-red hover:bg-red-50 transition-colors"
               >

@@ -11,7 +11,7 @@ export function createNodeData(type: NodeType | string): Record<string, unknown>
     case 'enum':
       return { nodeType: 'enum', name: 'EnumName', values: [], color: '#daf0e2' }
     case 'note':
-      return { nodeType: 'note', content: 'ノート', color: '#fdf5dc' }
+      return { nodeType: 'note', content: 'Note', color: '#fdf5dc' }
     case 'package':
       return { nodeType: 'package', name: 'PackageName', color: '#f0ebe3' }
     default:
@@ -74,7 +74,7 @@ export function createNode(type: string, position: { x: number; y: number }, cus
         style: { width: 160, minHeight: 80 },
         data: customData ?? ({
           nodeType: 'note',
-          content: 'ノート',
+          content: 'Note',
           color: '#fdf5dc',
         } satisfies NoteNodeData),
       }

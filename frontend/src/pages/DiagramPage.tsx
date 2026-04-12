@@ -191,7 +191,7 @@ function DiagramEditor({ id }: { id: string }) {
 
   // 保存ステータス表示
   const saveColor = saveStatus === 'saved' ? 'text-soft-green' : saveStatus === 'offline' ? 'text-soft-red' : 'text-soft-muted'
-  const saveTitle = saveStatus === 'saved' ? '保存済み' : saveStatus === 'offline' ? 'オフライン' : '保存中...'
+  const saveTitle = saveStatus === 'saved' ? 'Saved' : saveStatus === 'offline' ? 'Offline' : 'Saving...'
 
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
@@ -223,7 +223,7 @@ function DiagramEditor({ id }: { id: string }) {
       <button
         className="absolute top-3 left-4 z-10 opacity-40 hover:opacity-70 transition-opacity"
         onClick={() => navigate('/')}
-        title="トップに戻る"
+        title="Back to Home"
       >
         <LogoIcon />
       </button>
@@ -247,7 +247,7 @@ function DiagramEditor({ id }: { id: string }) {
           <button
             onClick={handleCopyUrl}
             className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${urlCopied ? 'text-soft-green' : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'}`}
-            title={urlCopied ? '✓ コピー済み' : 'URLを共有'}
+            title={urlCopied ? '✓ Copied' : 'Share URL'}
           >
             {urlCopied ? <IconCheck /> : <IconLink />}
           </button>
@@ -256,7 +256,7 @@ function DiagramEditor({ id }: { id: string }) {
           <button
             onClick={() => setShowImportModal(true)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
-            title="PlantUML インポート"
+            title="PlantUML Import"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -269,7 +269,7 @@ function DiagramEditor({ id }: { id: string }) {
           <button
             onClick={() => setShowExportModal(true)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
-            title="PlantUML エクスポート"
+            title="PlantUML Export"
           >
             <IconExport />
           </button>
@@ -289,7 +289,7 @@ function DiagramEditor({ id }: { id: string }) {
             <button
               className="w-8 h-8 flex items-center justify-center rounded-full bg-soft-primary text-white text-xs font-bold"
               onClick={() => setIsEditingName(true)}
-              title={`${userName} — クリックして変更`}
+              title={`${userName} — Click to rename`}
             >
               {userName.charAt(0).toUpperCase()}
             </button>
@@ -352,17 +352,17 @@ export default function DiagramPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-soft-canvas">
-        <p className="text-soft-muted text-lg">読み込み中...</p>
+        <p className="text-soft-muted text-lg">Loading...</p>
       </div>
     )
   }
   if (status === 'not_found') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-soft-canvas gap-4">
-        <p className="text-soft-text text-xl font-bold">ダイアグラムが見つかりません</p>
-        <p className="text-soft-muted text-sm">URLが正しいか確認してください。削除済みの場合もあります。</p>
+        <p className="text-soft-text text-xl font-bold">Diagram not found</p>
+        <p className="text-soft-muted text-sm">Please check the URL. It may have been deleted.</p>
         <button onClick={() => navigate('/')} className="mt-4 bg-soft-primary hover:bg-soft-primary-hover text-white px-6 py-2 rounded-full text-sm transition-colors">
-          トップに戻る
+          Back to Home
         </button>
       </div>
     )
@@ -370,9 +370,9 @@ export default function DiagramPage() {
   if (status === 'error') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-soft-canvas gap-4">
-        <p className="text-soft-red text-xl font-bold">エラーが発生しました</p>
+        <p className="text-soft-red text-xl font-bold">An error occurred</p>
         <button onClick={() => navigate('/')} className="mt-4 bg-soft-primary hover:bg-soft-primary-hover text-white px-6 py-2 rounded-full text-sm transition-colors">
-          トップに戻る
+          Back to Home
         </button>
       </div>
     )

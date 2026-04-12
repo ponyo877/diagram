@@ -38,9 +38,9 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
 
   return (
     <div className="flex flex-col">
-      <PropSection title="基本情報">
+      <PropSection title="General">
         <div className="mb-2">
-          <label className="block text-[10px] text-soft-muted mb-1">列挙型名</label>
+          <label className="block text-[10px] text-soft-muted mb-1">Enum Name</label>
           <input
             className="w-full h-7 px-2 text-[12px] bg-soft-input border border-soft-border rounded focus:outline-none focus:border-soft-primary focus:bg-white transition-colors"
             value={data.name}
@@ -48,7 +48,7 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
           />
         </div>
         <div className="mb-2">
-          <label className="block text-[10px] text-soft-muted mb-1">背景色</label>
+          <label className="block text-[10px] text-soft-muted mb-1">Color</label>
           <div className="flex gap-2 items-center">
             <input
               type="color"
@@ -65,7 +65,7 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
         </div>
       </PropSection>
 
-      <PropSection title="列挙値">
+      <PropSection title="Values">
         {data.values.map((val) => (
           <div key={val.id} className="grid grid-cols-[1fr_16px] gap-1 items-center mb-1.5">
             <input
@@ -85,7 +85,7 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
           onClick={addValue}
           className="text-[11px] text-soft-primary hover:text-soft-primary-hover transition-colors mt-1"
         >
-          + 値を追加
+          + Add Value
         </button>
       </PropSection>
 
@@ -93,7 +93,7 @@ export default function EnumProperties({ node, onUpdate, onDelete }: EnumPropert
         onClick={() => onDelete(node.id)}
         className="flex items-center justify-center gap-1.5 text-[11px] text-soft-red hover:text-red-700 px-3 py-3 transition-colors"
       >
-        ノードを削除
+        Delete Node
       </button>
     </div>
   )

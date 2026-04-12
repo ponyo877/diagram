@@ -50,7 +50,7 @@ export default function ImportModal({ onClose, onImport }: ImportModalProps) {
 
     const trimmed = text.trim()
     if (!trimmed) {
-      setError('PlantUMLテキストを入力してください')
+      setError('Please enter PlantUML text')
       return
     }
 
@@ -59,7 +59,7 @@ export default function ImportModal({ onClose, onImport }: ImportModalProps) {
       setWarnings(result.warnings)
 
       if (result.nodes.length === 0) {
-        setError('ノードが1つも検出されませんでした。PlantUMLの構文を確認してください。')
+        setError('No nodes detected. Please check your PlantUML syntax.')
         return
       }
 
@@ -68,7 +68,7 @@ export default function ImportModal({ onClose, onImport }: ImportModalProps) {
 
       onImport(layoutedNodes, result.edges)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'パース中にエラーが発生しました')
+      setError(e instanceof Error ? e.message : 'An error occurred while parsing')
     }
   }
 
@@ -83,11 +83,11 @@ export default function ImportModal({ onClose, onImport }: ImportModalProps) {
       >
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 h-12 border-b border-soft-border shrink-0">
-          <span className="text-sm font-bold text-soft-text">PlantUML インポート</span>
+          <span className="text-sm font-bold text-soft-text">PlantUML Import</span>
           <button
             onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-soft-hover text-soft-muted hover:text-soft-text transition-colors text-base leading-none"
-            title="閉じる"
+            title="Close"
           >
             ×
           </button>
@@ -111,10 +111,10 @@ export default function ImportModal({ onClose, onImport }: ImportModalProps) {
         )}
         {warnings.length > 0 && !error && (
           <div className="mx-4 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-[11px]">
-            <span className="font-bold">{warnings.length}件の警告:</span>
+            <span className="font-bold">{warnings.length} warning(s):</span>
             <ul className="mt-1 list-disc pl-4">
               {warnings.slice(0, 5).map((w, i) => <li key={i}>{w}</li>)}
-              {warnings.length > 5 && <li>...他{warnings.length - 5}件</li>}
+              {warnings.length > 5 && <li>...and {warnings.length - 5} more</li>}
             </ul>
           </div>
         )}
@@ -125,13 +125,13 @@ export default function ImportModal({ onClose, onImport }: ImportModalProps) {
             onClick={() => setText(SAMPLE_PLANTUML)}
             className="h-8 px-4 text-xs border border-soft-border rounded-full hover:bg-soft-hover transition-colors text-soft-muted"
           >
-            サンプル
+            Sample
           </button>
           <button
             onClick={handleImport}
             className="h-8 px-4 text-xs bg-soft-primary hover:bg-soft-primary-hover text-white rounded-full transition-colors"
           >
-            インポート
+            Import
           </button>
         </div>
       </div>
