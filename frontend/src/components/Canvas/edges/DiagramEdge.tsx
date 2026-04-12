@@ -171,6 +171,7 @@ export default function DiagramEdge({
               position: 'absolute', fontSize: 10, color: '#7a7168',
               fontFamily: "'M PLUS Rounded 1c', monospace", pointerEvents: 'none',
               transform: `translate(-50%, -50%) translate(${srcLX}px, ${srcLY}px)`,
+              zIndex: 1000,
             }}
           >
             {edgeData.sourceMultiplicity}
@@ -187,6 +188,7 @@ export default function DiagramEdge({
               position: 'absolute', fontSize: 10, color: '#7a7168',
               fontFamily: "'M PLUS Rounded 1c', monospace", pointerEvents: 'none',
               transform: `translate(-50%, -50%) translate(${tgtLX}px, ${tgtLY}px)`,
+              zIndex: 1000,
             }}
           >
             {edgeData.targetMultiplicity}
