@@ -312,19 +312,6 @@ function DiagramEditor({ id }: { id: string }) {
     { label: 'Delete Edge', shortcut: 'Del', danger: true, action: () => handleDeleteEdge(edgeId) },
   ], [handleDeleteEdge])
 
-  const buildPaneMenu = useCallback((): ContextMenuEntry[] => [
-    { label: 'Paste', shortcut: '⌘V', action: () => {
-      if (!clipboardNode.current) return
-      const src = clipboardNode.current
-      handleCreateNode(src.type ?? 'class', { x: src.position.x + 40, y: src.position.y + 40 }, nanoid(), { ...src.data })
-    } },
-    { separator: true },
-    { label: 'Zoom to Fit', action: () => fitView({ padding: 0.2, duration: 250 }) },
-    { label: 'Reset to 100%', action: () => fitView({ padding: 0.2, maxZoom: 1, duration: 250 }) },
-    { separator: true },
-    { label: 'Auto Layout', action: () => handleAutoLayout() },
-  ], [handleCreateNode, fitView, handleAutoLayout])
-
   const handleDeleteEdgeAndClear = useCallback((edgeId: string) => {
     handleDeleteEdge(edgeId); setSelectedEdgeId(null)
   }, [handleDeleteEdge])
@@ -355,6 +342,20 @@ function DiagramEditor({ id }: { id: string }) {
     setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 100)
     toast.info('Layout applied')
   }, [nodes, edges, handleRelayout, fitView, toast])
+
+  // buildPaneMenu depends on handleAutoLayout, so it must be declared AFTER it
+  const buildPaneMenu = useCallback((): ContextMenuEntry[] => [
+    { label: 'Paste', shortcut: '⌘V', action: () => {
+      if (!clipboardNode.current) return
+      const src = clipboardNode.current
+      handleCreateNode(src.type ?? 'class', { x: src.position.x + 40, y: src.position.y + 40 }, nanoid(), { ...src.data })
+    } },
+    { separator: true },
+    { label: 'Zoom to Fit', action: () => fitView({ padding: 0.2, duration: 250 }) },
+    { label: 'Reset to 100%', action: () => fitView({ padding: 0.2, maxZoom: 1, duration: 250 }) },
+    { separator: true },
+    { label: 'Auto Layout', action: () => handleAutoLayout() },
+  ], [handleCreateNode, fitView, handleAutoLayout])
 
   const buildCommands = useCallback((): Command[] => {
     return [
