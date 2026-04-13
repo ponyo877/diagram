@@ -48,6 +48,9 @@ interface CanvasProps {
   onNodeSelect: (node: Node | null) => void
   onEdgeSelect: (edge: Edge | null, clickPos?: { x: number; y: number }) => void
   onSelectionChange?: (nodeIds: string[], edgeIds: string[]) => void
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node) => void
+  onEdgeContextMenu?: (event: React.MouseEvent, edge: Edge) => void
+  onPaneContextMenu?: (event: React.MouseEvent) => void
   remoteUsers: Map<number, AwarenessState>
   onCursorMove: (pos: { x: number; y: number }) => void
   onCursorLeave: () => void
@@ -66,6 +69,9 @@ export default function Canvas({
   onNodeSelect,
   onEdgeSelect,
   onSelectionChange,
+  onNodeContextMenu,
+  onEdgeContextMenu,
+  onPaneContextMenu,
   remoteUsers,
   onCursorMove,
   onCursorLeave,
@@ -154,6 +160,19 @@ export default function Canvas({
         }}
         selectionOnDrag={!selectedPalette}
         panOnDrag={selectedPalette ? true : [1, 2]}
+        onNodeContextMenu={(event, node) => {
+          event.preventDefault()
+          if (node.id === PREVIEW_ID) return
+          if (onNodeContextMenu) onNodeContextMenu(event, node)
+        }}
+        onEdgeContextMenu={(event, edge) => {
+          event.preventDefault()
+          if (onEdgeContextMenu) onEdgeContextMenu(event, edge)
+        }}
+        onPaneContextMenu={(event) => {
+          event.preventDefault()
+          if (onPaneContextMenu) onPaneContextMenu(event as React.MouseEvent)
+        }}
         selectionKeyCode={null}
         multiSelectionKeyCode={'Shift'}
         panActivationKeyCode={'Space'}

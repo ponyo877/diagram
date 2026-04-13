@@ -10,6 +10,8 @@ import RemoteCursors from '../components/Cursors/RemoteCursors'
 import ExportModal from '../components/ExportModal/ExportModal'
 import ImportModal from '../components/ImportModal/ImportModal'
 import ZoomControls from '../components/ZoomControls/ZoomControls'
+import ShortcutsModal from '../components/ShortcutsModal/ShortcutsModal'
+import ContextMenu, { type ContextMenuEntry } from '../components/ContextMenu/ContextMenu'
 import { useToast } from '../contexts/ToastContext'
 import { useYjsProvider } from '../hooks/useYjsProvider'
 import { useYjsDiagram } from '../hooks/useYjsDiagram'
@@ -79,6 +81,8 @@ function DiagramEditor({ id }: { id: string }) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuEntry[] } | null>(null)
   const [urlCopied, setUrlCopied] = useState(false)
   const clipboardNode = useRef<Node | null>(null)
 
@@ -86,7 +90,7 @@ function DiagramEditor({ id }: { id: string }) {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     handleCreateNode, handleUpdateNode, handleDeleteNode,
-    handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout,
+    handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout, handleChangeZOrder,
   } = useYjsDiagram(ydoc)
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
@@ -133,6 +137,16 @@ function DiagramEditor({ id }: { id: string }) {
       if (e.ctrlKey || e.metaKey) {
         if (e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
         if (e.key === 'z') { e.preventDefault(); undo(); return }
+        if (e.key === '/') { e.preventDefault(); setShowShortcutsModal((v) => !v); return }
+        // Z-order: Cmd+] / Cmd+[ (with optional Shift for front/back)
+        if ((e.key === ']' || e.key === '[') && selectedNodeId) {
+          e.preventDefault()
+          const action = e.shiftKey
+            ? (e.key === ']' ? 'front' : 'back')
+            : (e.key === ']' ? 'forward' : 'backward')
+          handleChangeZOrder(selectedNodeId, action as 'forward' | 'backward' | 'front' | 'back')
+          return
+        }
         if (e.key === 'c' && selectedNodeId) {
           e.preventDefault()
           const node = nodes.find((n) => n.id === selectedNodeId)
@@ -159,7 +173,7 @@ function DiagramEditor({ id }: { id: string }) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode])
+  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode, handleChangeZOrder])
 
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
   const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
@@ -205,6 +219,47 @@ function DiagramEditor({ id }: { id: string }) {
   const handleDeleteNodeAndClear = useCallback((nodeId: string) => {
     handleDeleteNode(nodeId); setSelectedNodeId(null)
   }, [handleDeleteNode])
+
+  // Context menu builders
+  const buildNodeMenu = useCallback((nodeId: string): ContextMenuEntry[] => [
+    { label: 'Bring to Front', shortcut: '⌘⇧]', action: () => handleChangeZOrder(nodeId, 'front') },
+    { label: 'Bring Forward', shortcut: '⌘]', action: () => handleChangeZOrder(nodeId, 'forward') },
+    { label: 'Send Backward', shortcut: '⌘[', action: () => handleChangeZOrder(nodeId, 'backward') },
+    { label: 'Send to Back', shortcut: '⌘⇧[', action: () => handleChangeZOrder(nodeId, 'back') },
+    { separator: true },
+    {
+      label: 'Duplicate',
+      shortcut: '⌘D',
+      action: () => {
+        const node = nodes.find((n) => n.id === nodeId)
+        if (node) {
+          handleCreateNode(node.type ?? 'class', { x: node.position.x + 20, y: node.position.y + 20 }, nanoid(), { ...node.data })
+        }
+      },
+    },
+    { label: 'Copy', shortcut: '⌘C', action: () => {
+      const node = nodes.find((n) => n.id === nodeId)
+      if (node) clipboardNode.current = node
+    } },
+    { label: 'Delete', shortcut: 'Del', danger: true, action: () => handleDeleteNode(nodeId) },
+  ], [nodes, handleChangeZOrder, handleCreateNode, handleDeleteNode])
+
+  const buildEdgeMenu = useCallback((edgeId: string): ContextMenuEntry[] => [
+    { label: 'Delete Edge', shortcut: 'Del', danger: true, action: () => handleDeleteEdge(edgeId) },
+  ], [handleDeleteEdge])
+
+  const buildPaneMenu = useCallback((): ContextMenuEntry[] => [
+    { label: 'Paste', shortcut: '⌘V', action: () => {
+      if (!clipboardNode.current) return
+      const src = clipboardNode.current
+      handleCreateNode(src.type ?? 'class', { x: src.position.x + 40, y: src.position.y + 40 }, nanoid(), { ...src.data })
+    } },
+    { separator: true },
+    { label: 'Zoom to Fit', action: () => fitView({ padding: 0.2, duration: 250 }) },
+    { label: 'Reset to 100%', action: () => fitView({ padding: 0.2, maxZoom: 1, duration: 250 }) },
+    { separator: true },
+    { label: 'Auto Layout', action: () => handleAutoLayout() },
+  ], [handleCreateNode, fitView, handleAutoLayout])
 
   const handleDeleteEdgeAndClear = useCallback((edgeId: string) => {
     handleDeleteEdge(edgeId); setSelectedEdgeId(null)
@@ -264,6 +319,9 @@ function DiagramEditor({ id }: { id: string }) {
         onNodeSelect={handleNodeSelect}
         onEdgeSelect={handleEdgeSelect}
         onSelectionChange={handleSelectionChange}
+        onNodeContextMenu={(e, node) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildNodeMenu(node.id) })}
+        onEdgeContextMenu={(e, edge) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildEdgeMenu(edge.id) })}
+        onPaneContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildPaneMenu() })}
         remoteUsers={remoteUsers}
         onCursorMove={updateCursorPosition}
         onCursorLeave={clearCursorPosition}
@@ -419,12 +477,27 @@ function DiagramEditor({ id }: { id: string }) {
 
       {/* エクスポートモーダル */}
       {showExportModal && (
-        <ExportModal text={plantUmlText} onClose={() => setShowExportModal(false)} />
+        <ExportModal
+          text={plantUmlText}
+          nodes={nodes}
+          onClose={() => setShowExportModal(false)}
+          onToast={(msg, type) => type === 'error' ? toast.error(msg) : toast.success(msg)}
+        />
       )}
 
       {/* インポートモーダル */}
       {showImportModal && (
         <ImportModal onClose={() => setShowImportModal(false)} onImport={handleImport} />
+      )}
+
+      {/* ショートカットモーダル */}
+      {showShortcutsModal && (
+        <ShortcutsModal onClose={() => setShowShortcutsModal(false)} />
+      )}
+
+      {/* コンテキストメニュー */}
+      {contextMenu && (
+        <ContextMenu x={contextMenu.x} y={contextMenu.y} items={contextMenu.items} onClose={() => setContextMenu(null)} />
       )}
     </div>
   )

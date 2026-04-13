@@ -187,6 +187,32 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     [ydoc, yNodes, yEdges],
   )
 
+  // Z-order: bring forward / backward / to front / to back
+  const handleChangeZOrder = useCallback(
+    (id: string, action: 'forward' | 'backward' | 'front' | 'back') => {
+      setNodes((nds) => {
+        const current = nds.find((n) => n.id === id)
+        if (!current) return nds
+        const allZ = nds.map((n) => n.zIndex ?? 0)
+        let newZ = current.zIndex ?? 0
+        if (action === 'forward') newZ = newZ + 1
+        else if (action === 'backward') newZ = newZ - 1
+        else if (action === 'front') newZ = Math.max(...allZ) + 1
+        else if (action === 'back') newZ = Math.min(...allZ) - 1
+
+        const updated = nds.map((n) => (n.id === id ? { ...n, zIndex: newZ } : n))
+        const node = updated.find((n) => n.id === id)
+        if (node) {
+          ydoc.transact(() => {
+            yNodes.set(id, node as unknown as Record<string, unknown>)
+          }, LOCAL_ORIGIN)
+        }
+        return updated
+      })
+    },
+    [ydoc, yNodes],
+  )
+
   // Relayout: update all node positions in a single transaction
   const handleRelayout = useCallback(
     (layoutedNodes: Node[]) => {
@@ -213,5 +239,6 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     handleDeleteEdge,
     handleImportDiagram,
     handleRelayout,
+    handleChangeZOrder,
   }
 }

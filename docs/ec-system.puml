@@ -1,0 +1,121 @@
+@startuml
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  FAILED
+}
+
+interface PaymentMethod {
+  +pay(amount: double) : boolean
+  +refund(amount: double) : boolean
+}
+
+class User {
+  +id : int
+  +name : String
+  +email : String
+  +passwordHash : String
+  +register() : void
+  +login() : boolean
+}
+
+class Address {
+  +id : int
+  +street : String
+  +city : String
+  +zip : String
+  +country : String
+}
+
+class Category {
+  +id : int
+  +name : String
+  +description : String
+}
+
+class Product {
+  +id : int
+  +name : String
+  +price : double
+  +stock : int
+  +description : String
+  +isAvailable() : boolean
+}
+
+class Cart {
+  +id : int
+  +totalPrice() : double
+  +clear() : void
+}
+
+class CartItem {
+  +quantity : int
+  +subtotal() : double
+}
+
+class Order {
+  +id : int
+  +status : OrderStatus
+  +createdAt : Date
+  +totalAmount : double
+  +place() : void
+  +cancel() : void
+}
+
+class OrderItem {
+  +quantity : int
+  +unitPrice : double
+  +subtotal() : double
+}
+
+class Payment {
+  +id : int
+  +amount : double
+  +status : PaymentStatus
+  +paidAt : Date
+  +process() : boolean
+}
+
+class CreditCard {
+  +cardNumber : String
+  +expiry : String
+  +pay(amount: double) : boolean
+  +refund(amount: double) : boolean
+}
+
+class Review {
+  +id : int
+  +rating : int
+  +comment : String
+  +createdAt : Date
+}
+
+note "Core domain model for a typical EC platform" as N1
+
+User "1" --o "0..*" Address
+User "1" --o "1" Cart
+User "1" --> "0..*" Order
+User "1" --> "0..*" Review
+Cart "1" --* "0..*" CartItem
+CartItem "0..*" --> "1" Product
+Order "1" --* "1..*" OrderItem
+Order "1" --> "1" Payment
+Order --> OrderStatus
+OrderItem "0..*" --> "1" Product
+Payment --> PaymentStatus
+Product "0..*" --> "1" Category
+Review "0..*" --> "1" Product
+CreditCard ..|> PaymentMethod
+Payment --> PaymentMethod
+
+@enduml
