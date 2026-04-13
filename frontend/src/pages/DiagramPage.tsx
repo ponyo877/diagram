@@ -14,7 +14,10 @@ import ShortcutsModal from '../components/ShortcutsModal/ShortcutsModal'
 import ContextMenu, { type ContextMenuEntry } from '../components/ContextMenu/ContextMenu'
 import CommandPalette, { type Command } from '../components/CommandPalette/CommandPalette'
 import SearchBar from '../components/SearchBar/SearchBar'
+import CommentLayer from '../components/Comments/CommentLayer'
+import VersionPanel from '../components/VersionHistory/VersionPanel'
 import { useDiagramMeta } from '../hooks/useDiagramMeta'
+import { useComments } from '../hooks/useComments'
 import { useToast } from '../contexts/ToastContext'
 import { useYjsProvider } from '../hooks/useYjsProvider'
 import { useYjsDiagram } from '../hooks/useYjsDiagram'
@@ -106,6 +109,11 @@ function DiagramEditor({ id }: { id: string }) {
   const { fitView } = useReactFlow()
   const toast = useToast()
   const { name: diagramName, updateName: updateDiagramName } = useDiagramMeta(ydoc)
+  const { comments, addComment, addReply, toggleResolved, deleteComment } = useComments(ydoc)
+  const [commentMode, setCommentMode] = useState(false)
+  const [pendingCommentPos, setPendingCommentPos] = useState<{ x: number; y: number } | null>(null)
+  const [pendingCommentText, setPendingCommentText] = useState('')
+  const [showVersionPanel, setShowVersionPanel] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
 
   // Update browser tab title
@@ -387,6 +395,89 @@ function DiagramEditor({ id }: { id: string }) {
 
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-soft-canvas">
+      {/* コメントモード: キャンバスオーバーレイでクリック位置を取得 */}
+      {commentMode && !pendingCommentPos && (
+        <div
+          className="absolute inset-0 z-[1050] cursor-crosshair"
+          onClick={(e) => {
+            const reactFlowEl = document.querySelector('.react-flow')
+            if (!reactFlowEl) return
+            const rect = reactFlowEl.getBoundingClientRect()
+            // Use useReactFlow().screenToFlowPosition through a ref or do this inline
+            // Simpler: use current viewport to compute
+            const vp = getViewport()
+            const flowX = (e.clientX - rect.left - vp.x) / vp.zoom
+            const flowY = (e.clientY - rect.top - vp.y) / vp.zoom
+            setPendingCommentPos({ x: flowX, y: flowY })
+          }}
+        />
+      )}
+
+      {/* 保留中コメント入力 */}
+      {pendingCommentPos && (
+        <div
+          className="absolute z-[1200] bg-white rounded-xl shadow-lg border border-soft-border p-2 w-64"
+          style={{
+            left: pendingCommentPos.x * getViewport().zoom + getViewport().x,
+            top: pendingCommentPos.y * getViewport().zoom + getViewport().y,
+          }}
+        >
+          <textarea
+            autoFocus
+            value={pendingCommentText}
+            onChange={(e) => setPendingCommentText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setPendingCommentPos(null); setPendingCommentText('') }
+              if (e.key === 'Enter' && e.metaKey) {
+                if (pendingCommentText.trim()) {
+                  const user = Array.from(remoteUsers.values())[0]
+                  // Get own color from awareness (fallback)
+                  const ownColor = provider?.awareness?.getLocalState()?.color ?? '#4a9ce8'
+                  const ownId = provider?.awareness?.getLocalState()?.userId ?? 'me'
+                  addComment(pendingCommentPos, pendingCommentText.trim(), {
+                    id: ownId,
+                    name: userName,
+                    color: ownColor,
+                  })
+                  toast.success('Comment added')
+                  setPendingCommentPos(null)
+                  setPendingCommentText('')
+                }
+              }
+            }}
+            placeholder="Comment... (⌘+Enter to submit)"
+            className="w-full h-16 px-2 py-1 text-xs bg-soft-input border border-soft-border rounded-lg focus:outline-none focus:border-soft-primary resize-none"
+          />
+          <div className="flex justify-end gap-1 mt-1">
+            <button
+              onClick={() => { setPendingCommentPos(null); setPendingCommentText('') }}
+              className="text-[10px] text-soft-muted hover:text-soft-text px-2 py-0.5 rounded"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (pendingCommentText.trim()) {
+                  const ownColor = provider?.awareness?.getLocalState()?.color ?? '#4a9ce8'
+                  const ownId = provider?.awareness?.getLocalState()?.userId ?? 'me'
+                  addComment(pendingCommentPos, pendingCommentText.trim(), {
+                    id: ownId,
+                    name: userName,
+                    color: ownColor,
+                  })
+                  toast.success('Comment added')
+                  setPendingCommentPos(null)
+                  setPendingCommentText('')
+                }
+              }}
+              className="text-[10px] bg-soft-primary hover:bg-soft-primary-hover text-white px-2 py-0.5 rounded-full"
+            >
+              Post
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* フルスクリーンキャンバス */}
       <EdgeActionsContext.Provider value={{
         onUpdateEdge: handleUpdateEdge,
@@ -414,6 +505,15 @@ function DiagramEditor({ id }: { id: string }) {
         onCursorLeave={clearCursorPosition}
       />
       </EdgeActionsContext.Provider>
+
+      {/* コメントレイヤー */}
+      <CommentLayer
+        comments={comments}
+        onAddReply={(id, text) => addReply(id, text, { id: provider?.awareness?.getLocalState()?.userId ?? 'me', name: userName })}
+        onToggleResolved={toggleResolved}
+        onDelete={deleteComment}
+        showResolved={false}
+      />
 
       {/* 左上: 透過ロゴ + タイトル */}
       <div className="absolute top-3 left-4 z-10 flex items-center gap-3">
@@ -499,6 +599,33 @@ function DiagramEditor({ id }: { id: string }) {
           >
             <IconExport />
             <span className="text-[7px] leading-none">Export</span>
+          </button>
+
+          {/* History */}
+          <button
+            onClick={() => setShowVersionPanel(true)}
+            className="w-9 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover transition-colors"
+            title="Version History"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span className="text-[7px] leading-none">History</span>
+          </button>
+
+          {/* Comment Mode Toggle */}
+          <button
+            onClick={() => setCommentMode((v) => !v)}
+            className={`w-9 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg transition-colors ${
+              commentMode ? 'bg-soft-primary-light text-soft-primary' : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'
+            }`}
+            title="Toggle Comment Mode"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span className="text-[7px] leading-none">Comment</span>
           </button>
 
           {/* Auto Layout */}
@@ -628,6 +755,16 @@ function DiagramEditor({ id }: { id: string }) {
           nodes={nodes}
           onClose={() => { setShowSearch(false); setSearchMatchIds([]) }}
           onMatchChange={setSearchMatchIds}
+        />
+      )}
+
+      {/* バージョン履歴パネル */}
+      {showVersionPanel && (
+        <VersionPanel
+          diagramId={id}
+          onClose={() => setShowVersionPanel(false)}
+          onRestore={() => setShowVersionPanel(false)}
+          onToast={(msg, type) => type === 'error' ? toast.error(msg) : toast.success(msg)}
         />
       )}
 

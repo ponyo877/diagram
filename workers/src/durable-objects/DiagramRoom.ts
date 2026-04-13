@@ -42,6 +42,40 @@ export class DiagramRoom extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
 
+    // Internal endpoint: take current Yjs state snapshot
+    if (url.pathname === '/snapshot') {
+      await this.ensureDoc()
+      if (!this.doc) return new Response(new ArrayBuffer(0))
+      const state = Y.encodeStateAsUpdate(this.doc)
+      return new Response(state, { headers: { 'Content-Type': 'application/octet-stream' } })
+    }
+
+    // Internal endpoint: restore from a previous state (replace current doc)
+    if (url.pathname === '/restore') {
+      const buf = await request.arrayBuffer()
+      if (!this.doc) {
+        this.doc = new Y.Doc()
+      }
+      // Replace current doc contents with the stored state.
+      // We cannot simply applyUpdate because old state remains; clear first.
+      const newDoc = new Y.Doc()
+      Y.applyUpdate(newDoc, new Uint8Array(buf))
+      // Replace
+      const oldDoc = this.doc
+      this.doc = newDoc
+      // Broadcast the diff to all connected clients
+      for (const ws of this.ctx.getWebSockets()) {
+        try {
+          ws.send(encodeSyncStep1(this.doc))
+        } catch {}
+      }
+      // Save to DB
+      await this.saveToDB()
+      // Dispose old doc
+      oldDoc?.destroy()
+      return new Response('ok')
+    }
+
     if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('Expected WebSocket upgrade', { status: 426 })
     }
