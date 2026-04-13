@@ -9,6 +9,8 @@ import Sidebar from '../components/Sidebar/Sidebar'
 import RemoteCursors from '../components/Cursors/RemoteCursors'
 import ExportModal from '../components/ExportModal/ExportModal'
 import ImportModal from '../components/ImportModal/ImportModal'
+import ZoomControls from '../components/ZoomControls/ZoomControls'
+import { useToast } from '../contexts/ToastContext'
 import { useYjsProvider } from '../hooks/useYjsProvider'
 import { useYjsDiagram } from '../hooks/useYjsDiagram'
 import { useCollaboration } from '../hooks/useCollaboration'
@@ -90,6 +92,7 @@ function DiagramEditor({ id }: { id: string }) {
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
   const { fitView } = useReactFlow()
+  const toast = useToast()
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -106,8 +109,17 @@ function DiagramEditor({ id }: { id: string }) {
         return
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedNodeId) handleDeleteNode(selectedNodeId)
-        if (selectedEdgeId) handleDeleteEdge(selectedEdgeId)
+        // Multi-selection support: delete all selected
+        if (selectedNodeIds.length > 0) {
+          selectedNodeIds.forEach((id) => handleDeleteNode(id))
+        } else if (selectedNodeId) {
+          handleDeleteNode(selectedNodeId)
+        }
+        if (selectedEdgeIds.length > 0) {
+          selectedEdgeIds.forEach((id) => handleDeleteEdge(id))
+        } else if (selectedEdgeId) {
+          handleDeleteEdge(selectedEdgeId)
+        }
         return
       }
       if (!e.ctrlKey && !e.metaKey) {
@@ -147,14 +159,39 @@ function DiagramEditor({ id }: { id: string }) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode])
+  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode])
 
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
   const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
 
+  // Multi-selection state (Shift+click, marquee). Single selection stays in selectedNodeId for backward compat.
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([])
+
   const handleNodeSelect = useCallback((node: Node | null) => {
     setSelectedNodeId(node?.id ?? null)
     if (node) setSelectedEdgeId(null)
+  }, [])
+
+  const handleSelectionChange = useCallback((nodeIds: string[], edgeIds: string[]) => {
+    setSelectedNodeIds(nodeIds)
+    setSelectedEdgeIds(edgeIds)
+    // Keep single-selection state in sync for backward compat
+    if (nodeIds.length === 1) {
+      setSelectedNodeId(nodeIds[0])
+      setSelectedEdgeId(null)
+    } else if (nodeIds.length === 0 && edgeIds.length === 1) {
+      setSelectedEdgeId(edgeIds[0])
+      setSelectedNodeId(null)
+    } else if (nodeIds.length === 0 && edgeIds.length === 0) {
+      setSelectedNodeId(null)
+      setSelectedEdgeId(null)
+    }
+    // For multi-select, clear single-selection panel
+    if (nodeIds.length > 1 || edgeIds.length > 1) {
+      setSelectedNodeId(null)
+      setSelectedEdgeId(null)
+    }
   }, [])
 
   const [edgeToolbarPos, setEdgeToolbarPos] = useState<{ x: number; y: number } | null>(null)
@@ -181,21 +218,24 @@ function DiagramEditor({ id }: { id: string }) {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setUrlCopied(true)
       setTimeout(() => setUrlCopied(false), 2000)
+      toast.success('URL copied to clipboard')
     })
-  }, [])
+  }, [toast])
 
   const handleImport = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     handleImportDiagram(newNodes, newEdges)
     setShowImportModal(false)
     // Fit view after import (slight delay to let React Flow render the new nodes)
     setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 100)
-  }, [handleImportDiagram, fitView])
+    toast.success(`Imported ${newNodes.length} nodes, ${newEdges.length} edges`)
+  }, [handleImportDiagram, fitView, toast])
 
   const handleAutoLayout = useCallback(() => {
     const layouted = applyAutoLayout(nodes, edges)
     handleRelayout(layouted)
     setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 300 }), 100)
-  }, [nodes, edges, handleRelayout, fitView])
+    toast.info('Layout applied')
+  }, [nodes, edges, handleRelayout, fitView, toast])
 
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
 
@@ -223,6 +263,7 @@ function DiagramEditor({ id }: { id: string }) {
         onCreateNode={handleCreateNodeAndClear}
         onNodeSelect={handleNodeSelect}
         onEdgeSelect={handleEdgeSelect}
+        onSelectionChange={handleSelectionChange}
         remoteUsers={remoteUsers}
         onCursorMove={updateCursorPosition}
         onCursorLeave={clearCursorPosition}
@@ -326,8 +367,34 @@ function DiagramEditor({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* 複数選択時: 件数 + 一括削除 */}
+      {selectedNodeIds.length + selectedEdgeIds.length > 1 && (
+        <div className="absolute top-14 right-3 z-10">
+          <div className="w-64 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-soft-border p-4 flex flex-col gap-3">
+            <div className="text-[11px] font-bold text-soft-muted uppercase tracking-widest">
+              {selectedNodeIds.length + selectedEdgeIds.length} items selected
+            </div>
+            <div className="text-xs text-soft-muted">
+              {selectedNodeIds.length} node{selectedNodeIds.length !== 1 ? 's' : ''},{' '}
+              {selectedEdgeIds.length} edge{selectedEdgeIds.length !== 1 ? 's' : ''}
+            </div>
+            <button
+              onClick={() => {
+                selectedNodeIds.forEach((id) => handleDeleteNode(id))
+                selectedEdgeIds.forEach((id) => handleDeleteEdge(id))
+                setSelectedNodeIds([])
+                setSelectedEdgeIds([])
+              }}
+              className="text-[11px] text-soft-red hover:text-red-700 text-left"
+            >
+              Delete All Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 右側: フローティングプロパティパネル */}
-      {(selectedNode || selectedEdge) && (
+      {selectedNodeIds.length + selectedEdgeIds.length <= 1 && (selectedNode || selectedEdge) && (
         <div className="absolute top-14 right-3 z-10">
           <Sidebar
             selectedNode={selectedNode}
@@ -343,6 +410,11 @@ function DiagramEditor({ id }: { id: string }) {
       {/* 下部中央: フローティングパレット */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
         <Palette selected={selectedPalette} onSelect={setSelectedPalette} />
+      </div>
+
+      {/* 左下: ズームコントロール */}
+      <div className="absolute bottom-4 left-4 z-10">
+        <ZoomControls />
       </div>
 
       {/* エクスポートモーダル */}

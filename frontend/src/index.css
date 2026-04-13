@@ -13,6 +13,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Toast animation */
+@keyframes toast-in {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* カスタムスクロールバー（パネル内） */
 .panel-scroll {
   scrollbar-width: thin;

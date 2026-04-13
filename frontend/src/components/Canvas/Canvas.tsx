@@ -47,6 +47,7 @@ interface CanvasProps {
   onCreateNode: (type: string, position: { x: number; y: number }) => void
   onNodeSelect: (node: Node | null) => void
   onEdgeSelect: (edge: Edge | null, clickPos?: { x: number; y: number }) => void
+  onSelectionChange?: (nodeIds: string[], edgeIds: string[]) => void
   remoteUsers: Map<number, AwarenessState>
   onCursorMove: (pos: { x: number; y: number }) => void
   onCursorLeave: () => void
@@ -64,6 +65,7 @@ export default function Canvas({
   onCreateNode,
   onNodeSelect,
   onEdgeSelect,
+  onSelectionChange,
   remoteUsers,
   onCursorMove,
   onCursorLeave,
@@ -142,6 +144,19 @@ export default function Canvas({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onPaneClick={handlePaneClick}
+        onSelectionChange={({ nodes: selNodes, edges: selEdges }) => {
+          if (onSelectionChange) {
+            onSelectionChange(
+              selNodes.filter((n) => n.id !== PREVIEW_ID).map((n) => n.id),
+              selEdges.map((e) => e.id),
+            )
+          }
+        }}
+        selectionOnDrag={!selectedPalette}
+        panOnDrag={selectedPalette ? true : [1, 2]}
+        selectionKeyCode={null}
+        multiSelectionKeyCode={'Shift'}
+        panActivationKeyCode={'Space'}
         onNodeClick={(_, node) => {
           if (node.id === PREVIEW_ID) return
           onNodeSelect(node)
