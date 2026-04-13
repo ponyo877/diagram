@@ -213,6 +213,93 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     [ydoc, yNodes],
   )
 
+  // Auto-reparent: after a node drag, check if it's inside a package
+  // If yes, set parentId; if it was inside one and now outside, remove parentId.
+  // Coordinates are converted accordingly so visual position stays the same.
+  const handleAutoReparent = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => {
+        const node = nds.find((n) => n.id === nodeId)
+        if (!node || node.type === 'package') return nds
+
+        // Compute absolute position (accounting for existing parent chain)
+        const getAbsPos = (n: Node, visited = new Set<string>()): { x: number; y: number } => {
+          if (!n.parentId || visited.has(n.id)) return n.position
+          visited.add(n.id)
+          const parent = nds.find((p) => p.id === n.parentId)
+          if (!parent) return n.position
+          const pAbs = getAbsPos(parent, visited)
+          return { x: pAbs.x + n.position.x, y: pAbs.y + n.position.y }
+        }
+
+        const absPos = getAbsPos(node)
+        const nodeW = (node.style?.width as number) ?? 180
+        const nodeH = (node.style?.height as number) ?? 120
+        const nodeCenter = { x: absPos.x + nodeW / 2, y: absPos.y + nodeH / 2 }
+
+        // Find all packages whose bounds contain this node's center
+        const containingPackages = nds.filter((p) => {
+          if (p.type !== 'package') return false
+          if (p.id === nodeId) return false
+          const pAbs = getAbsPos(p)
+          const pW = (p.style?.width as number) ?? 300
+          const pH = (p.style?.height as number) ?? 200
+          return (
+            nodeCenter.x >= pAbs.x &&
+            nodeCenter.x <= pAbs.x + pW &&
+            nodeCenter.y >= pAbs.y &&
+            nodeCenter.y <= pAbs.y + pH
+          )
+        })
+
+        // Pick innermost (smallest area) package
+        const targetPackage = containingPackages.sort((a, b) => {
+          const aArea = ((a.style?.width as number) ?? 300) * ((a.style?.height as number) ?? 200)
+          const bArea = ((b.style?.width as number) ?? 300) * ((b.style?.height as number) ?? 200)
+          return aArea - bArea
+        })[0]
+
+        const currentParentId = node.parentId ?? null
+        const newParentId = targetPackage?.id ?? null
+        if (newParentId === currentParentId) return nds
+
+        // Compute new position for the node relative to its new parent (or absolute if unparented)
+        let newPos = absPos
+        if (targetPackage) {
+          const pAbs = getAbsPos(targetPackage)
+          newPos = { x: absPos.x - pAbs.x, y: absPos.y - pAbs.y }
+        }
+
+        const updated = nds.map((n) => {
+          if (n.id !== nodeId) return n
+          const next: Node = {
+            ...n,
+            position: newPos,
+          }
+          if (newParentId) {
+            next.parentId = newParentId
+          } else {
+            // Remove parentId when leaving all packages
+            const cleaned: Record<string, unknown> = { ...next }
+            delete cleaned.parentId
+            delete cleaned.extent
+            return cleaned as Node
+          }
+          return next
+        })
+
+        const updatedNode = updated.find((n) => n.id === nodeId)
+        if (updatedNode) {
+          ydoc.transact(() => {
+            yNodes.set(nodeId, updatedNode as unknown as Record<string, unknown>)
+          }, LOCAL_ORIGIN)
+        }
+        return updated
+      })
+    },
+    [ydoc, yNodes],
+  )
+
   // Group: wrap selected nodes inside a new Package
   const handleGroupNodes = useCallback(
     (ids: string[]) => {
@@ -342,5 +429,6 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     handleChangeZOrder,
     handleGroupNodes,
     handleUngroupNodes,
+    handleAutoReparent,
   }
 }

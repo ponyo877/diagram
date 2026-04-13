@@ -101,7 +101,7 @@ function DiagramEditor({ id }: { id: string }) {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     handleCreateNode, handleUpdateNode, handleDeleteNode,
     handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout, handleChangeZOrder,
-    handleGroupNodes, handleUngroupNodes,
+    handleGroupNodes, handleUngroupNodes, handleAutoReparent,
   } = useYjsDiagram(ydoc)
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition, updateViewport } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
@@ -502,6 +502,7 @@ function DiagramEditor({ id }: { id: string }) {
         onNodeContextMenu={(e, node) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildNodeMenu(node.id) })}
         onEdgeContextMenu={(e, edge) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildEdgeMenu(edge.id) })}
         onPaneContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildPaneMenu() })}
+        onNodeDragStop={(node) => handleAutoReparent(node.id)}
         remoteUsers={remoteUsers}
         onCursorMove={updateCursorPosition}
         onCursorLeave={clearCursorPosition}

@@ -51,6 +51,7 @@ interface CanvasProps {
   onNodeContextMenu?: (event: React.MouseEvent, node: Node) => void
   onEdgeContextMenu?: (event: React.MouseEvent, edge: Edge) => void
   onPaneContextMenu?: (event: React.MouseEvent) => void
+  onNodeDragStop?: (node: Node) => void
   remoteUsers: Map<number, AwarenessState>
   onCursorMove: (pos: { x: number; y: number }) => void
   onCursorLeave: () => void
@@ -72,6 +73,7 @@ export default function Canvas({
   onNodeContextMenu,
   onEdgeContextMenu,
   onPaneContextMenu,
+  onNodeDragStop,
   remoteUsers,
   onCursorMove,
   onCursorLeave,
@@ -172,6 +174,10 @@ export default function Canvas({
         onPaneContextMenu={(event) => {
           event.preventDefault()
           if (onPaneContextMenu) onPaneContextMenu(event as React.MouseEvent)
+        }}
+        onNodeDragStop={(_, node) => {
+          if (node.id === PREVIEW_ID) return
+          if (onNodeDragStop) onNodeDragStop(node)
         }}
         selectionKeyCode={null}
         multiSelectionKeyCode={'Shift'}
