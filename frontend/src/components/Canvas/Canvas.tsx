@@ -176,12 +176,15 @@ export default function Canvas({
         selectionKeyCode={null}
         multiSelectionKeyCode={'Shift'}
         panActivationKeyCode={'Space'}
-        onNodeClick={(_, node) => {
+        onNodeClick={(event, node) => {
           if (node.id === PREVIEW_ID) return
+          // Skip single-select logic when Shift+click (let onSelectionChange handle multi-select)
+          if (event.shiftKey) return
           onNodeSelect(node)
           onEdgeSelect(null)
         }}
         onEdgeClick={(event, edge) => {
+          if (event.shiftKey) return
           const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY })
           onEdgeSelect(edge, flowPos)
           onNodeSelect(null)
