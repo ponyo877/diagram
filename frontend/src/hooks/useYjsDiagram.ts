@@ -17,7 +17,7 @@ import type {
 } from '@xyflow/react'
 import { nanoid } from 'nanoid'
 import { createNode } from '../utils/nodeFactory'
-import { PACKAGE_TAB_HEIGHT, getNodeAbsolutePos } from '../utils/packageHelpers'
+import { PACKAGE_TAB_HEIGHT, getNodeAbsolutePos, collectWithDescendants } from '../utils/packageHelpers'
 import type { NodeType, DiagramEdgeData } from '../types/diagram'
 
 const LOCAL_ORIGIN = 'local'
@@ -146,16 +146,22 @@ export function useYjsDiagram(
     [ydoc, yNodes],
   )
 
+  // ノード削除: Package を削除する場合は子孫も連動削除する。
+  // また、削除されるすべてのノード（自身 + 子孫）を端点とするエッジも削除する。
   const handleDeleteNode = useCallback(
     (id: string) => {
-      setNodes((nds) => nds.filter((n) => n.id !== id))
-      setEdges((eds) => {
-        const toDelete = eds.filter((e) => e.source === id || e.target === id)
-        ydoc.transact(() => {
-          yNodes.delete(id)
-          toDelete.forEach((e) => yEdges.delete(e.id))
-        }, LOCAL_ORIGIN)
-        return eds.filter((e) => e.source !== id && e.target !== id)
+      setNodes((nds) => {
+        // 子孫含めた削除対象 ID 集合
+        const idSet = collectWithDescendants([id], nds)
+        setEdges((eds) => {
+          const toDeleteEdges = eds.filter((e) => idSet.has(e.source) || idSet.has(e.target))
+          ydoc.transact(() => {
+            for (const nodeId of idSet) yNodes.delete(nodeId)
+            for (const e of toDeleteEdges) yEdges.delete(e.id)
+          }, LOCAL_ORIGIN)
+          return eds.filter((e) => !idSet.has(e.source) && !idSet.has(e.target))
+        })
+        return nds.filter((n) => !idSet.has(n.id))
       })
     },
     [ydoc, yNodes, yEdges],

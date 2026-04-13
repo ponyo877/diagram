@@ -287,20 +287,23 @@ function DiagramEditor({ id }: { id: string }) {
   }, [getViewport, updateViewport])
 
   // Keyboard shortcuts
+  // 注意: Shift を伴うキー押下では e.key が大文字になる（例: Shift+G → 'G'）。
+  // 比較は常に小文字化した key で行う。
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
       if (isInput) return
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
 
-      if (e.key === 'Escape') {
+      if (key === 'Escape') {
         setSelectedPalette(null)
         setSelectedNodeId(null)
         setSelectedEdgeId(null)
         setShowExportModal(false)
         return
       }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (key === 'Delete' || key === 'Backspace') {
         // Multi-selection support: delete all selected
         if (selectedNodeIds.length > 0) {
           selectedNodeIds.forEach((id) => handleDeleteNode(id))
@@ -315,7 +318,6 @@ function DiagramEditor({ id }: { id: string }) {
         return
       }
       if (!e.ctrlKey && !e.metaKey) {
-        const key = e.key.toLowerCase()
         if (key === 'c' && !selectedNodeId) { setSelectedPalette('class'); return }
         if (key === 'i') { setSelectedPalette('interface'); return }
         if (key === 'e') { setSelectedPalette('enum'); return }
@@ -323,12 +325,12 @@ function DiagramEditor({ id }: { id: string }) {
         if (key === 'p') { setSelectedPalette('package'); return }
       }
       if (e.ctrlKey || e.metaKey) {
-        if (e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
-        if (e.key === 'z') { e.preventDefault(); undo(); return }
-        if (e.key === '/') { e.preventDefault(); setShowShortcutsModal((v) => !v); return }
-        if (e.key === 'k') { e.preventDefault(); setShowCommandPalette((v) => !v); return }
-        if (e.key === 'f') { e.preventDefault(); setShowSearch((v) => !v); return }
-        if (e.key === 'g') {
+        if (e.shiftKey && key === 'z') { e.preventDefault(); redo(); return }
+        if (key === 'z') { e.preventDefault(); undo(); return }
+        if (key === '/') { e.preventDefault(); setShowShortcutsModal((v) => !v); return }
+        if (key === 'k') { e.preventDefault(); setShowCommandPalette((v) => !v); return }
+        if (key === 'f') { e.preventDefault(); setShowSearch((v) => !v); return }
+        if (key === 'g') {
           e.preventDefault()
           if (e.shiftKey) {
             // Ungroup
@@ -347,25 +349,25 @@ function DiagramEditor({ id }: { id: string }) {
           return
         }
         // Z-order: Cmd+] / Cmd+[ (with optional Shift for front/back)
-        if ((e.key === ']' || e.key === '[') && selectedNodeId) {
+        if ((key === ']' || key === '[') && selectedNodeId) {
           e.preventDefault()
           const action = e.shiftKey
-            ? (e.key === ']' ? 'front' : 'back')
-            : (e.key === ']' ? 'forward' : 'backward')
+            ? (key === ']' ? 'front' : 'back')
+            : (key === ']' ? 'forward' : 'backward')
           handleChangeZOrder(selectedNodeId, action as 'forward' | 'backward' | 'front' | 'back')
           return
         }
-        if (e.key === 'c') {
+        if (key === 'c') {
           e.preventDefault()
           handleCopySelection()
           return
         }
-        if (e.key === 'x') {
+        if (key === 'x') {
           e.preventDefault()
           handleCutSelection()
           return
         }
-        if (e.key === 'v') {
+        if (key === 'v') {
           e.preventDefault()
           // 現在のマウス位置を貼り付け先に（Package 内 → 自動所属）。
           // 位置が取れなければ undefined → デフォルト +20 オフセット。

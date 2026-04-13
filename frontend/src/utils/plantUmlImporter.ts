@@ -167,7 +167,7 @@ export function importFromPlantUml(text: string): ImportResult {
             content: content.replace(/\\n/g, '\n'),
             color: DEFAULT_COLORS.note,
           } satisfies NoteNodeData,
-          ...(currentPackageId ? { parentId: currentPackageId } : {}),
+          ...(currentPackageId ? { parentId: currentPackageId, extent: 'parent' as const } : {}),
         })
         continue
       }
@@ -315,7 +315,7 @@ export function importFromPlantUml(text: string): ImportResult {
         methods: [...currentMethods],
         color: DEFAULT_COLORS[nodeType],
       } satisfies ClassNodeData,
-      ...(currentPackageId ? { parentId: currentPackageId } : {}),
+      ...(currentPackageId ? { parentId: currentPackageId, extent: 'parent' as const } : {}),
     })
   }
 
@@ -330,7 +330,7 @@ export function importFromPlantUml(text: string): ImportResult {
         values: [...currentEnumValues],
         color: DEFAULT_COLORS.enum,
       } satisfies EnumNodeData,
-      ...(currentPackageId ? { parentId: currentPackageId } : {}),
+      ...(currentPackageId ? { parentId: currentPackageId, extent: 'parent' as const } : {}),
     })
   }
 
