@@ -8,6 +8,7 @@ export interface AwarenessState {
   name: string
   color: string
   cursor: { x: number; y: number } | null
+  viewport?: { x: number; y: number; zoom: number }
 }
 
 export function useCollaboration(provider: WebsocketProvider | null) {
@@ -78,5 +79,18 @@ export function useCollaboration(provider: WebsocketProvider | null) {
     provider.awareness.setLocalStateField('cursor', null)
   }, [provider])
 
-  return { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition }
+  // Viewport broadcast (for follow mode)
+  const lastViewportUpdate = useRef(0)
+  const updateViewport = useCallback(
+    (viewport: { x: number; y: number; zoom: number }) => {
+      if (!provider) return
+      const now = Date.now()
+      if (now - lastViewportUpdate.current < 200) return
+      lastViewportUpdate.current = now
+      provider.awareness.setLocalStateField('viewport', viewport)
+    },
+    [provider],
+  )
+
+  return { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition, updateViewport }
 }

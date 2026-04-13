@@ -12,6 +12,8 @@ import ImportModal from '../components/ImportModal/ImportModal'
 import ZoomControls from '../components/ZoomControls/ZoomControls'
 import ShortcutsModal from '../components/ShortcutsModal/ShortcutsModal'
 import ContextMenu, { type ContextMenuEntry } from '../components/ContextMenu/ContextMenu'
+import CommandPalette, { type Command } from '../components/CommandPalette/CommandPalette'
+import SearchBar from '../components/SearchBar/SearchBar'
 import { useDiagramMeta } from '../hooks/useDiagramMeta'
 import { useToast } from '../contexts/ToastContext'
 import { useYjsProvider } from '../hooks/useYjsProvider'
@@ -83,7 +85,11 @@ function DiagramEditor({ id }: { id: string }) {
   const [showExportModal, setShowExportModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showShortcutsModal, setShowShortcutsModal] = useState(false)
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchMatchIds, setSearchMatchIds] = useState<string[]>([])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuEntry[] } | null>(null)
+  const [followingClientId, setFollowingClientId] = useState<number | null>(null)
   const [urlCopied, setUrlCopied] = useState(false)
   const clipboardNode = useRef<Node | null>(null)
 
@@ -94,7 +100,7 @@ function DiagramEditor({ id }: { id: string }) {
     handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout, handleChangeZOrder,
     handleGroupNodes, handleUngroupNodes,
   } = useYjsDiagram(ydoc)
-  const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
+  const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition, updateViewport } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
   const { fitView } = useReactFlow()
@@ -108,6 +114,25 @@ function DiagramEditor({ id }: { id: string }) {
     document.title = `Diagramer - ${displayName}`
     return () => { document.title = 'Diagramer' }
   }, [diagramName])
+
+  // Follow mode: apply followed user's viewport
+  const { setViewport, getViewport } = useReactFlow()
+  useEffect(() => {
+    if (followingClientId == null) return
+    const user = remoteUsers.get(followingClientId)
+    if (user?.viewport) {
+      setViewport(user.viewport, { duration: 150 })
+    }
+  }, [followingClientId, remoteUsers, setViewport])
+
+  // Broadcast my viewport for follow mode
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const vp = getViewport()
+      updateViewport(vp)
+    }, 300)
+    return () => clearInterval(interval)
+  }, [getViewport, updateViewport])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -149,6 +174,8 @@ function DiagramEditor({ id }: { id: string }) {
         if (e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
         if (e.key === 'z') { e.preventDefault(); undo(); return }
         if (e.key === '/') { e.preventDefault(); setShowShortcutsModal((v) => !v); return }
+        if (e.key === 'k') { e.preventDefault(); setShowCommandPalette((v) => !v); return }
+        if (e.key === 'f') { e.preventDefault(); setShowSearch((v) => !v); return }
         if (e.key === 'g') {
           e.preventDefault()
           if (e.shiftKey) {
@@ -321,6 +348,37 @@ function DiagramEditor({ id }: { id: string }) {
     toast.info('Layout applied')
   }, [nodes, edges, handleRelayout, fitView, toast])
 
+  const buildCommands = useCallback((): Command[] => {
+    return [
+      { id: 'create-class', category: 'Create', label: 'Create Class', shortcut: 'C', action: () => setSelectedPalette('class') },
+      { id: 'create-interface', category: 'Create', label: 'Create Interface', shortcut: 'I', action: () => setSelectedPalette('interface') },
+      { id: 'create-enum', category: 'Create', label: 'Create Enum', shortcut: 'E', action: () => setSelectedPalette('enum') },
+      { id: 'create-note', category: 'Create', label: 'Create Note', shortcut: 'N', action: () => setSelectedPalette('note') },
+      { id: 'create-package', category: 'Create', label: 'Create Package', shortcut: 'P', action: () => setSelectedPalette('package') },
+      { id: 'undo', category: 'Edit', label: 'Undo', shortcut: '⌘Z', action: () => undo() },
+      { id: 'redo', category: 'Edit', label: 'Redo', shortcut: '⌘⇧Z', action: () => redo() },
+      { id: 'delete', category: 'Edit', label: 'Delete Selected', shortcut: 'Del', action: () => {
+        selectedNodeIds.forEach((id) => handleDeleteNode(id))
+        selectedEdgeIds.forEach((id) => handleDeleteEdge(id))
+      } },
+      { id: 'group', category: 'Edit', label: 'Group Selected', shortcut: '⌘G', action: () => {
+        const ids = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : [])
+        if (ids.length > 0) handleGroupNodes(ids)
+      } },
+      { id: 'export-plantuml', category: 'Export', label: 'Export PlantUML', action: () => setShowExportModal(true) },
+      { id: 'export-png', category: 'Export', label: 'Export PNG', action: () => setShowExportModal(true) },
+      { id: 'export-svg', category: 'Export', label: 'Export SVG', action: () => setShowExportModal(true) },
+      { id: 'import', category: 'Import', label: 'Import PlantUML', action: () => setShowImportModal(true) },
+      { id: 'layout', category: 'View', label: 'Auto Layout', action: () => handleAutoLayout() },
+      { id: 'zoom-in', category: 'View', label: 'Zoom In', action: () => fitView({ duration: 200, maxZoom: 2 }) },
+      { id: 'zoom-fit', category: 'View', label: 'Zoom to Fit', action: () => fitView({ padding: 0.2, duration: 250 }) },
+      { id: 'zoom-100', category: 'View', label: 'Reset to 100%', action: () => setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 200 }) },
+      { id: 'search', category: 'Nav', label: 'Search...', shortcut: '⌘F', action: () => setShowSearch(true) },
+      { id: 'shortcuts', category: 'Help', label: 'Keyboard Shortcuts', shortcut: '⌘/', action: () => setShowShortcutsModal(true) },
+      { id: 'home', category: 'Nav', label: 'Back to Home', action: () => navigate('/') },
+    ]
+  }, [selectedNodeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, handleGroupNodes, handleAutoLayout, undo, redo, fitView, setViewport, navigate])
+
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
 
   // 保存ステータス表示
@@ -338,7 +396,7 @@ function DiagramEditor({ id }: { id: string }) {
         targetNodeName: selectedEdge ? ((nodes.find((n) => n.id === selectedEdge.target)?.data as Record<string, unknown>)?.name as string ?? null) : null,
       }}>
       <Canvas
-        nodes={nodes}
+        nodes={searchMatchIds.length > 0 ? nodes.map((n) => searchMatchIds.includes(n.id) ? { ...n, className: 'search-hit' } : n) : nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -391,7 +449,11 @@ function DiagramEditor({ id }: { id: string }) {
 
       {/* 右上: フローティングアクションバー */}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-        <RemoteCursors remoteUsers={remoteUsers} />
+        <RemoteCursors
+          remoteUsers={remoteUsers}
+          followingClientId={followingClientId}
+          onFollow={setFollowingClientId}
+        />
         <div className="flex items-center gap-0.5 bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-soft-border px-1 py-1">
           {/* 保存ステータス */}
           <span className={`w-9 h-10 flex flex-col items-center justify-center gap-0.5 ${saveColor}`} title={saveTitle}>
@@ -551,6 +613,40 @@ function DiagramEditor({ id }: { id: string }) {
       {contextMenu && (
         <ContextMenu x={contextMenu.x} y={contextMenu.y} items={contextMenu.items} onClose={() => setContextMenu(null)} />
       )}
+
+      {/* コマンドパレット */}
+      {showCommandPalette && (
+        <CommandPalette
+          onClose={() => setShowCommandPalette(false)}
+          commands={buildCommands()}
+        />
+      )}
+
+      {/* 検索バー */}
+      {showSearch && (
+        <SearchBar
+          nodes={nodes}
+          onClose={() => { setShowSearch(false); setSearchMatchIds([]) }}
+          onMatchChange={setSearchMatchIds}
+        />
+      )}
+
+      {/* フォロー中バッジ */}
+      {followingClientId != null && (() => {
+        const u = remoteUsers.get(followingClientId)
+        return u ? (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-soft-border px-3 py-1.5 text-xs">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: u.color }} />
+            <span>Following <strong>{u.name}</strong></span>
+            <button
+              onClick={() => setFollowingClientId(null)}
+              className="text-soft-muted hover:text-soft-text ml-2"
+            >
+              Stop
+            </button>
+          </div>
+        ) : null
+      })()}
     </div>
   )
 }

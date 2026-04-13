@@ -19,6 +19,12 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* Search hit highlight */
+.react-flow__node.search-hit > * {
+  box-shadow: 0 0 0 3px rgba(240, 192, 90, 0.6), 0 0 12px rgba(240, 192, 90, 0.5) !important;
+  border-radius: 12px;
+}
+
 /* カスタムスクロールバー（パネル内） */
 .panel-scroll {
   scrollbar-width: thin;
