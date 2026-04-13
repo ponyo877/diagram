@@ -28,8 +28,15 @@ import { exportToPlantUml } from '../utils/plantUmlExporter'
 import { exportToMermaid } from '../utils/mermaidExporter'
 import { applyAutoLayout } from '../utils/diagramLayout'
 import { EdgeActionsContext } from '../contexts/EdgeActionsContext'
-import { findContainingPackageAt, getNodeAbsolutePos } from '../utils/packageHelpers'
+import { findContainingPackageAt, getNodeAbsolutePos, collectWithDescendants } from '../utils/packageHelpers'
 import { nanoid } from 'nanoid'
+
+// クリップボード型: 複数ノード + エッジを deep copy で保持。
+// 連続コピーは単純な参照上書き → 直前のもののみ残る仕様。
+type ClipboardSelection = {
+  nodes: Node[]
+  edges: Edge[]
+} | null
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
 
@@ -96,7 +103,9 @@ function DiagramEditor({ id }: { id: string }) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuEntry[] } | null>(null)
   const [followingClientId, setFollowingClientId] = useState<number | null>(null)
   const [urlCopied, setUrlCopied] = useState(false)
-  const clipboardNode = useRef<Node | null>(null)
+  // クリップボード（直前にコピー/カットした selection の deep copy）
+  // 連続コピーは単純上書き：直前の 1 件のみ残る
+  const clipboardRef = useRef<ClipboardSelection>(null)
   // 直前のエッジ種別（デフォルトは association）: 連続エッジ作成の利便性向上
   const lastEdgeDataRef = useRef<DiagramEdgeData | null>({ edgeType: 'association' })
 
@@ -123,6 +132,122 @@ function DiagramEditor({ id }: { id: string }) {
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([])
 
+  // ─── Copy / Cut / Paste ─────────────────────────────────────────────
+  // 注意: keyboard useEffect の依存配列で参照されるため、useEffect の宣言より
+  // 必ず前にここで定義しておく（TDZ エラー回避）。
+  const handleCopySelection = useCallback((): boolean => {
+    const baseIds = selectedNodeIds.length > 0
+      ? selectedNodeIds
+      : (selectedNodeId ? [selectedNodeId] : [])
+    if (baseIds.length === 0) return false
+    const idSet = collectWithDescendants(baseIds, nodes)
+    const copyNodes = nodes.filter((n) => idSet.has(n.id)).map((n) => structuredClone(n))
+    const copyEdges = edges
+      .filter((e) => idSet.has(e.source) && idSet.has(e.target))
+      .map((e) => structuredClone(e))
+    clipboardRef.current = { nodes: copyNodes, edges: copyEdges }
+    return true
+  }, [selectedNodeId, selectedNodeIds, nodes, edges])
+
+  const handlePasteClipboard = useCallback(
+    (targetPos?: { x: number; y: number }) => {
+      const clip = clipboardRef.current
+      if (!clip || clip.nodes.length === 0) return
+      const { nodes: srcNodes, edges: srcEdges } = clip
+
+      const idMap = new Map<string, string>()
+      srcNodes.forEach((n) => idMap.set(n.id, nanoid()))
+
+      const srcMap = new Map(srcNodes.map((n) => [n.id, n]))
+      const topLevelSrc = srcNodes.filter((n) => !n.parentId || !idMap.has(n.parentId))
+      const topLevelAbs = new Map<string, { x: number; y: number }>()
+      for (const n of topLevelSrc) topLevelAbs.set(n.id, { x: n.position.x, y: n.position.y })
+
+      const tlPositions = Array.from(topLevelAbs.values())
+      const cx = tlPositions.length > 0 ? tlPositions.reduce((s, p) => s + p.x, 0) / tlPositions.length : 0
+      const cy = tlPositions.length > 0 ? tlPositions.reduce((s, p) => s + p.y, 0) / tlPositions.length : 0
+      const offsetX = targetPos ? targetPos.x - cx : 20
+      const offsetY = targetPos ? targetPos.y - cy : 20
+
+      const tlPlacement = new Map<
+        string,
+        { parentId?: string; position: { x: number; y: number } }
+      >()
+      for (const [id, abs] of topLevelAbs) {
+        const newAbs = { x: abs.x + offsetX, y: abs.y + offsetY }
+        const srcN = srcMap.get(id)
+        const isPackage = srcN?.type === 'package'
+        if (isPackage) {
+          tlPlacement.set(id, { position: newAbs })
+          continue
+        }
+        const containingPkg = findContainingPackageAt(newAbs, nodes)
+        if (containingPkg) {
+          const pAbs = getNodeAbsolutePos(containingPkg, nodes)
+          tlPlacement.set(id, {
+            parentId: containingPkg.id,
+            position: { x: newAbs.x - pAbs.x, y: newAbs.y - pAbs.y },
+          })
+        } else {
+          tlPlacement.set(id, { position: newAbs })
+        }
+      }
+
+      const newNodes: Node[] = srcNodes.map((n) => {
+        const newId = idMap.get(n.id)!
+        if (n.parentId && idMap.has(n.parentId)) {
+          const next: Node = {
+            ...n,
+            id: newId,
+            parentId: idMap.get(n.parentId)!,
+            extent: 'parent' as const,
+            position: { ...n.position },
+            selected: false,
+          }
+          return next
+        }
+        const place = tlPlacement.get(n.id)!
+        const next: Record<string, unknown> = {
+          ...n,
+          id: newId,
+          position: place.position,
+          selected: false,
+        }
+        if (place.parentId) {
+          next.parentId = place.parentId
+          next.extent = 'parent' as const
+        } else {
+          delete next.parentId
+          delete next.extent
+        }
+        return next as Node
+      })
+
+      const newEdges: Edge[] = srcEdges.map((e) => ({
+        ...e,
+        id: nanoid(),
+        source: idMap.get(e.source)!,
+        target: idMap.get(e.target)!,
+        selected: false,
+      }) as Edge)
+
+      handleImportDiagram(newNodes, newEdges)
+      toast.success(`Pasted ${newNodes.length} node${newNodes.length !== 1 ? 's' : ''}`)
+    },
+    [nodes, handleImportDiagram, toast],
+  )
+
+  const handleCutSelection = useCallback(() => {
+    if (!handleCopySelection()) return
+    const baseIds = selectedNodeIds.length > 0
+      ? selectedNodeIds
+      : (selectedNodeId ? [selectedNodeId] : [])
+    baseIds.forEach((id) => handleDeleteNode(id))
+    selectedEdgeIds.forEach((id) => handleDeleteEdge(id))
+    setSelectedNodeId(null)
+    setSelectedEdgeId(null)
+  }, [handleCopySelection, selectedNodeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge])
+
   // Update browser tab title
   useEffect(() => {
     const displayName = diagramName || 'Untitled'
@@ -131,7 +256,19 @@ function DiagramEditor({ id }: { id: string }) {
   }, [diagramName])
 
   // Follow mode: apply followed user's viewport
-  const { setViewport, getViewport } = useReactFlow()
+  const { setViewport, getViewport, screenToFlowPosition } = useReactFlow()
+  // 右クリック→Paste 用に最後のコンテキストメニュークリック位置（flow 座標）を保持
+  // pane / node どちらの右クリックでも同じ ref を使い、Paste の貼り付け先座標として参照する
+  const lastContextFlowPos = useRef<{ x: number; y: number } | null>(null)
+  // 現在のマウス位置（screen 座標）。Cmd+V 時に flow 座標へ変換して貼り付け先に使う。
+  const mouseScreenPosRef = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      mouseScreenPosRef.current = { x: e.clientX, y: e.clientY }
+    }
+    window.addEventListener('mousemove', handler)
+    return () => window.removeEventListener('mousemove', handler)
+  }, [])
   useEffect(() => {
     if (followingClientId == null) return
     const user = remoteUsers.get(followingClientId)
@@ -218,33 +355,34 @@ function DiagramEditor({ id }: { id: string }) {
           handleChangeZOrder(selectedNodeId, action as 'forward' | 'backward' | 'front' | 'back')
           return
         }
-        if (e.key === 'c' && selectedNodeId) {
+        if (e.key === 'c') {
           e.preventDefault()
-          const node = nodes.find((n) => n.id === selectedNodeId)
-          if (node) clipboardNode.current = node
+          handleCopySelection()
           return
         }
-        if (e.key === 'x' && selectedNodeId) {
+        if (e.key === 'x') {
           e.preventDefault()
-          const node = nodes.find((n) => n.id === selectedNodeId)
-          if (node) {
-            clipboardNode.current = node
-            handleDeleteNode(selectedNodeId)
-            setSelectedNodeId(null)
+          handleCutSelection()
+          return
+        }
+        if (e.key === 'v') {
+          e.preventDefault()
+          // 現在のマウス位置を貼り付け先に（Package 内 → 自動所属）。
+          // 位置が取れなければ undefined → デフォルト +20 オフセット。
+          let targetPos: { x: number; y: number } | undefined
+          if (mouseScreenPosRef.current) {
+            try {
+              targetPos = screenToFlowPosition(mouseScreenPosRef.current)
+            } catch { /* noop */ }
           }
-          return
-        }
-        if (e.key === 'v' && clipboardNode.current) {
-          e.preventDefault()
-          const src = clipboardNode.current
-          handleCreateNode(src.type ?? 'class', { x: src.position.x + 20, y: src.position.y + 20 }, nanoid(), { ...src.data })
+          handlePasteClipboard(targetPos)
           return
         }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode, handleChangeZOrder, handleGroupNodes, handleUngroupNodes, toast])
+  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode, handleChangeZOrder, handleGroupNodes, handleUngroupNodes, toast, handleCopySelection, handleCutSelection, handlePasteClipboard])
 
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
   const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
@@ -290,28 +428,59 @@ function DiagramEditor({ id }: { id: string }) {
   }, [handleDeleteNode])
 
   // Context menu builders
-  const buildNodeMenu = useCallback((nodeId: string): ContextMenuEntry[] => [
-    { label: 'Bring to Front', shortcut: '⌘⇧]', action: () => handleChangeZOrder(nodeId, 'front') },
-    { label: 'Bring Forward', shortcut: '⌘]', action: () => handleChangeZOrder(nodeId, 'forward') },
-    { label: 'Send Backward', shortcut: '⌘[', action: () => handleChangeZOrder(nodeId, 'backward') },
-    { label: 'Send to Back', shortcut: '⌘⇧[', action: () => handleChangeZOrder(nodeId, 'back') },
-    { separator: true },
-    {
-      label: 'Duplicate',
-      shortcut: '⌘D',
-      action: () => {
-        const node = nodes.find((n) => n.id === nodeId)
-        if (node) {
-          handleCreateNode(node.type ?? 'class', { x: node.position.x + 20, y: node.position.y + 20 }, nanoid(), { ...node.data })
-        }
+  // Duplicate / Copy: 右クリック対象のノードを一時的に「単独選択扱い」してコピー処理を流用。
+  // これにより Package を右クリックで Duplicate すると中身（子孫）も含めて複製される。
+  const copyOneNodeWithDescendants = useCallback((nodeId: string) => {
+    const idSet = collectWithDescendants([nodeId], nodes)
+    const copyNodes = nodes.filter((n) => idSet.has(n.id)).map((n) => structuredClone(n))
+    const copyEdges = edges
+      .filter((e) => idSet.has(e.source) && idSet.has(e.target))
+      .map((e) => structuredClone(e))
+    clipboardRef.current = { nodes: copyNodes, edges: copyEdges }
+  }, [nodes, edges])
+
+  const buildNodeMenu = useCallback((nodeId: string): ContextMenuEntry[] => {
+    const node = nodes.find((n) => n.id === nodeId)
+    const isPackage = node?.type === 'package'
+    const entries: ContextMenuEntry[] = []
+    // Z-order: Package は最背面固定なので Package 行ではメニューを抑制
+    if (!isPackage) {
+      entries.push(
+        { label: 'Bring to Front', shortcut: '⌘⇧]', action: () => handleChangeZOrder(nodeId, 'front') },
+        { label: 'Bring Forward', shortcut: '⌘]', action: () => handleChangeZOrder(nodeId, 'forward') },
+        { label: 'Send Backward', shortcut: '⌘[', action: () => handleChangeZOrder(nodeId, 'backward') },
+        { label: 'Send to Back', shortcut: '⌘⇧[', action: () => handleChangeZOrder(nodeId, 'back') },
+        { separator: true },
+      )
+    }
+    entries.push(
+      {
+        label: 'Duplicate',
+        shortcut: '⌘D',
+        action: () => {
+          copyOneNodeWithDescendants(nodeId)
+          handlePasteClipboard()
+        },
       },
-    },
-    { label: 'Copy', shortcut: '⌘C', action: () => {
-      const node = nodes.find((n) => n.id === nodeId)
-      if (node) clipboardNode.current = node
-    } },
-    { label: 'Delete', shortcut: 'Del', danger: true, action: () => handleDeleteNode(nodeId) },
-  ], [nodes, handleChangeZOrder, handleCreateNode, handleDeleteNode])
+      {
+        label: 'Copy',
+        shortcut: '⌘C',
+        action: () => copyOneNodeWithDescendants(nodeId),
+      },
+    )
+    // Package 上の右クリックには「Paste here」を追加（クリック位置に貼り付け、Package 内なら自動所属）
+    if (isPackage && clipboardRef.current && clipboardRef.current.nodes.length > 0) {
+      entries.push({
+        label: 'Paste here',
+        shortcut: '⌘V',
+        action: () => handlePasteClipboard(lastContextFlowPos.current ?? undefined),
+      })
+    }
+    entries.push(
+      { label: 'Delete', shortcut: 'Del', danger: true, action: () => handleDeleteNode(nodeId) },
+    )
+    return entries
+  }, [nodes, handleChangeZOrder, handleDeleteNode, copyOneNodeWithDescendants, handlePasteClipboard])
 
   const buildEdgeMenu = useCallback((edgeId: string): ContextMenuEntry[] => [
     { label: 'Delete Edge', shortcut: 'Del', danger: true, action: () => handleDeleteEdge(edgeId) },
@@ -369,6 +538,8 @@ function DiagramEditor({ id }: { id: string }) {
     setSelectedPalette(null)
   }, [handleCreateNode, nodes])
 
+  // (Copy/Cut/Paste handlers are declared earlier near state to avoid TDZ in keyboard useEffect deps.)
+
   const handleCopyUrl = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setUrlCopied(true)
@@ -394,17 +565,13 @@ function DiagramEditor({ id }: { id: string }) {
 
   // buildPaneMenu depends on handleAutoLayout, so it must be declared AFTER it
   const buildPaneMenu = useCallback((): ContextMenuEntry[] => [
-    { label: 'Paste', shortcut: '⌘V', action: () => {
-      if (!clipboardNode.current) return
-      const src = clipboardNode.current
-      handleCreateNode(src.type ?? 'class', { x: src.position.x + 40, y: src.position.y + 40 }, nanoid(), { ...src.data })
-    } },
+    { label: 'Paste', shortcut: '⌘V', action: () => handlePasteClipboard(lastContextFlowPos.current ?? undefined) },
     { separator: true },
     { label: 'Zoom to Fit', action: () => fitView({ padding: 0.2, duration: 250 }) },
     { label: 'Reset to 100%', action: () => fitView({ padding: 0.2, maxZoom: 1, duration: 250 }) },
     { separator: true },
     { label: 'Auto Layout', action: () => handleAutoLayout() },
-  ], [handleCreateNode, fitView, handleAutoLayout])
+  ], [handlePasteClipboard, fitView, handleAutoLayout])
 
   const buildCommands = useCallback((): Command[] => {
     return [
@@ -548,9 +715,15 @@ function DiagramEditor({ id }: { id: string }) {
         onNodeSelect={handleNodeSelect}
         onEdgeSelect={handleEdgeSelect}
         onSelectionChange={handleSelectionChange}
-        onNodeContextMenu={(e, node) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildNodeMenu(node.id) })}
+        onNodeContextMenu={(e, node) => {
+          lastContextFlowPos.current = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+          setContextMenu({ x: e.clientX, y: e.clientY, items: buildNodeMenu(node.id) })
+        }}
         onEdgeContextMenu={(e, edge) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildEdgeMenu(edge.id) })}
-        onPaneContextMenu={(e) => setContextMenu({ x: e.clientX, y: e.clientY, items: buildPaneMenu() })}
+        onPaneContextMenu={(e) => {
+          lastContextFlowPos.current = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+          setContextMenu({ x: e.clientX, y: e.clientY, items: buildPaneMenu() })
+        }}
         onNodeDragStop={(node) => handleAutoReparent(node.id)}
         remoteUsers={remoteUsers}
         onCursorMove={updateCursorPosition}

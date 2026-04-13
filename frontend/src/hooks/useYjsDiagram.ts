@@ -205,17 +205,19 @@ export function useYjsDiagram(
   )
 
   // Z-order: bring forward / backward / to front / to back
+  // Package は常に最背面（zIndex: -1）に固定する仕様のため、Package の Z-order 変更は無視する
   const handleChangeZOrder = useCallback(
     (id: string, action: 'forward' | 'backward' | 'front' | 'back') => {
       setNodes((nds) => {
         const current = nds.find((n) => n.id === id)
         if (!current) return nds
-        const allZ = nds.map((n) => n.zIndex ?? 0)
+        if (current.type === 'package') return nds // Package は最背面固定
+        const allZ = nds.filter((n) => n.type !== 'package').map((n) => n.zIndex ?? 0)
         let newZ = current.zIndex ?? 0
         if (action === 'forward') newZ = newZ + 1
         else if (action === 'backward') newZ = newZ - 1
-        else if (action === 'front') newZ = Math.max(...allZ) + 1
-        else if (action === 'back') newZ = Math.min(...allZ) - 1
+        else if (action === 'front') newZ = Math.max(0, ...allZ) + 1
+        else if (action === 'back') newZ = Math.max(0, Math.min(0, ...allZ) - 1)
 
         const updated = nds.map((n) => (n.id === id ? { ...n, zIndex: newZ } : n))
         const node = updated.find((n) => n.id === id)
@@ -230,89 +232,127 @@ export function useYjsDiagram(
     [ydoc, yNodes],
   )
 
-  // Auto-reparent: after a node drag, check if it's inside a package
-  // If yes, set parentId; if it was inside one and now outside, remove parentId.
-  // Coordinates are converted accordingly so visual position stays the same.
+  // Auto-reparent: ノード移動後の親 Package 自動同期。
+  // - 移動したノードが非Package: 中心が入っている最内 Package を親に設定（既存挙動）
+  // - 移動したノードが Package: 加えて、Package 内に存在するすべての他ノードを自動で親=この Package に
+  //   する。Package を動かしたら中身も追従する Figma/draw.io 流の動きに合わせる。
   const handleAutoReparent = useCallback(
     (nodeId: string) => {
       setNodes((nds) => {
         const node = nds.find((n) => n.id === nodeId)
         if (!node) return nds
-        // Package も自己だけは除外し、他の Package への再配置は許可する
-        // ただし、自身の子孫 Package への再配置は無限ループを生むので除外する
 
-        const absPos = getNodeAbsolutePos(node, nds)
-        const nodeW = (node.style?.width as number) ?? 180
-        const nodeH = (node.style?.height as number) ?? 120
-        const nodeCenter = { x: absPos.x + nodeW / 2, y: absPos.y + nodeH / 2 }
-
-        // Find all packages whose bounds contain this node's center
-        // タブ領域 (y: -24 〜 0) も判定に含める
-        const containingPackages = nds.filter((p) => {
-          if (p.type !== 'package') return false
-          if (p.id === nodeId) return false
-          // p が node の子孫なら対象外（循環を防ぐ）
-          const isDescendant = (candidateId: string, ancestorId: string): boolean => {
-            const n = nds.find((x) => x.id === candidateId)
-            if (!n?.parentId) return false
-            if (n.parentId === ancestorId) return true
-            return isDescendant(n.parentId, ancestorId)
-          }
-          if (node.type === 'package' && isDescendant(p.id, nodeId)) return false
-          const pAbs = getNodeAbsolutePos(p, nds)
-          const pW = (p.style?.width as number) ?? 300
-          const pH = (p.style?.height as number) ?? 200
-          return (
-            nodeCenter.x >= pAbs.x &&
-            nodeCenter.x <= pAbs.x + pW &&
-            nodeCenter.y >= pAbs.y - PACKAGE_TAB_HEIGHT &&
-            nodeCenter.y <= pAbs.y + pH
-          )
-        })
-
-        // Pick innermost (smallest area) package
-        const targetPackage = containingPackages.sort((a, b) => {
-          const aArea = ((a.style?.width as number) ?? 300) * ((a.style?.height as number) ?? 200)
-          const bArea = ((b.style?.width as number) ?? 300) * ((b.style?.height as number) ?? 200)
-          return aArea - bArea
-        })[0]
-
-        const currentParentId = node.parentId ?? null
-        const newParentId = targetPackage?.id ?? null
-        if (newParentId === currentParentId) return nds
-
-        // Compute new position for the node relative to its new parent (or absolute if unparented)
-        let newPos = absPos
-        if (targetPackage) {
-          const pAbs = getNodeAbsolutePos(targetPackage, nds)
-          newPos = { x: absPos.x - pAbs.x, y: absPos.y - pAbs.y }
+        const isDescendant = (candidateId: string, ancestorId: string): boolean => {
+          const n = nds.find((x) => x.id === candidateId)
+          if (!n?.parentId) return false
+          if (n.parentId === ancestorId) return true
+          return isDescendant(n.parentId, ancestorId)
         }
 
-        const updated = nds.map((n) => {
-          if (n.id !== nodeId) return n
-          const next: Node = {
-            ...n,
-            position: newPos,
-          }
-          if (newParentId) {
-            next.parentId = newParentId
-            next.extent = 'parent' as const
-          } else {
-            // Remove parentId when leaving all packages
-            const cleaned: Record<string, unknown> = { ...next }
-            delete cleaned.parentId
-            delete cleaned.extent
-            return cleaned as Node
-          }
-          return next
-        })
+        // ─── ヘルパー: 与えられた node について、最内の親 Package と新 position を返す
+        const computeParenting = (
+          n: Node,
+          allNodes: Node[],
+        ): { newParentId: string | null; newPos: { x: number; y: number } } => {
+          const absPos = getNodeAbsolutePos(n, allNodes)
+          const nodeW = (n.style?.width as number) ?? 180
+          const nodeH = (n.style?.height as number) ?? 120
+          const nodeCenter = { x: absPos.x + nodeW / 2, y: absPos.y + nodeH / 2 }
 
-        const updatedNode = updated.find((n) => n.id === nodeId)
-        if (updatedNode) {
-          ydoc.transact(() => {
-            yNodes.set(nodeId, updatedNode as unknown as Record<string, unknown>)
-          }, LOCAL_ORIGIN)
+          const candidates = allNodes.filter((p) => {
+            if (p.type !== 'package') return false
+            if (p.id === n.id) return false
+            // n が Package の場合: n の子孫 Package を親にしない（循環防止）
+            if (n.type === 'package' && isDescendant(p.id, n.id)) return false
+            const pAbs = getNodeAbsolutePos(p, allNodes)
+            const pW = (p.style?.width as number) ?? 300
+            const pH = (p.style?.height as number) ?? 200
+            return (
+              nodeCenter.x >= pAbs.x &&
+              nodeCenter.x <= pAbs.x + pW &&
+              nodeCenter.y >= pAbs.y - PACKAGE_TAB_HEIGHT &&
+              nodeCenter.y <= pAbs.y + pH
+            )
+          })
+
+          const target = candidates.sort((a, b) => {
+            const aArea = ((a.style?.width as number) ?? 300) * ((a.style?.height as number) ?? 200)
+            const bArea = ((b.style?.width as number) ?? 300) * ((b.style?.height as number) ?? 200)
+            return aArea - bArea
+          })[0]
+
+          if (!target) return { newParentId: null, newPos: absPos }
+          const pAbs = getNodeAbsolutePos(target, allNodes)
+          return {
+            newParentId: target.id,
+            newPos: { x: absPos.x - pAbs.x, y: absPos.y - pAbs.y },
+          }
         }
+
+        // どのノードを再評価するか：
+        // - 単体ノード移動: そのノード自身
+        // - Package 移動: そのノード + Package の枠内に「自分の子孫ではない」全ノード
+        //   (中身の追従は React Flow の親子関係による相対座標で自動。
+        //    ここでは「Package 移動でその範囲内に新たに入ったノード」を親化する)
+        const targets = new Set<string>([nodeId])
+        if (node.type === 'package') {
+          for (const other of nds) {
+            if (other.id === nodeId) continue
+            // 既に node の子孫なら追従済み（再評価不要）
+            if (isDescendant(other.id, nodeId)) continue
+            // node 自身の祖先（つまり node を内包する祖父 Package など）は親化対象外
+            if (other.type === 'package' && isDescendant(nodeId, other.id)) continue
+            // other が この Package 内に入っているか判定
+            const oAbs = getNodeAbsolutePos(other, nds)
+            const oW = (other.style?.width as number) ?? 180
+            const oH = (other.style?.height as number) ?? 120
+            const oCenter = { x: oAbs.x + oW / 2, y: oAbs.y + oH / 2 }
+            const pAbs = getNodeAbsolutePos(node, nds)
+            const pW = (node.style?.width as number) ?? 300
+            const pH = (node.style?.height as number) ?? 200
+            const inside =
+              oCenter.x >= pAbs.x &&
+              oCenter.x <= pAbs.x + pW &&
+              oCenter.y >= pAbs.y - PACKAGE_TAB_HEIGHT &&
+              oCenter.y <= pAbs.y + pH
+            if (inside) targets.add(other.id)
+          }
+        }
+
+        // 各対象ノードを順次再計算して累積適用
+        let updated = nds
+        const changedIds: string[] = []
+        for (const id of targets) {
+          const n = updated.find((x) => x.id === id)
+          if (!n) continue
+          const { newParentId, newPos } = computeParenting(n, updated)
+          const currentParentId = n.parentId ?? null
+          if (newParentId === currentParentId) continue
+          updated = updated.map((x) => {
+            if (x.id !== id) return x
+            const next: Node = { ...x, position: newPos }
+            if (newParentId) {
+              next.parentId = newParentId
+              next.extent = 'parent' as const
+            } else {
+              const cleaned: Record<string, unknown> = { ...next }
+              delete cleaned.parentId
+              delete cleaned.extent
+              return cleaned as Node
+            }
+            return next
+          })
+          changedIds.push(id)
+        }
+
+        if (changedIds.length === 0) return nds
+
+        ydoc.transact(() => {
+          for (const id of changedIds) {
+            const u = updated.find((n) => n.id === id)
+            if (u) yNodes.set(id, u as unknown as Record<string, unknown>)
+          }
+        }, LOCAL_ORIGIN)
         return updated
       })
     },

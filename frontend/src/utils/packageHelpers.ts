@@ -89,3 +89,41 @@ export function isDescendantOf(nodeId: string, ancestorId: string, allNodes: Nod
   if (node.parentId === ancestorId) return true
   return isDescendantOf(node.parentId, ancestorId, allNodes)
 }
+
+/**
+ * 指定 ID 群と、その全ての子孫 ID をまとめた集合を返す
+ * （Package のコピー時に Package と中身を一緒に複製するため）
+ */
+export function collectWithDescendants(
+  rootIds: string[],
+  allNodes: Node[],
+): Set<string> {
+  const result = new Set<string>(rootIds)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const n of allNodes) {
+      if (n.parentId && result.has(n.parentId) && !result.has(n.id)) {
+        result.add(n.id)
+        changed = true
+      }
+    }
+  }
+  return result
+}
+
+/**
+ * ノードの中心が指定 Package 矩形内（タブ領域含む）にあるかを判定する
+ */
+export function isNodeCenterInPackage(
+  node: Node,
+  pkg: Node,
+  allNodes: Node[],
+): boolean {
+  if (pkg.type !== 'package') return false
+  const nAbs = getNodeAbsolutePos(node, allNodes)
+  const nodeW = (node.style?.width as number) ?? 180
+  const nodeH = (node.style?.height as number) ?? 120
+  const center = { x: nAbs.x + nodeW / 2, y: nAbs.y + nodeH / 2 }
+  return isPointInPackageBounds(center, pkg, allNodes)
+}
