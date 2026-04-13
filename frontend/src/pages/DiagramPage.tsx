@@ -115,6 +115,9 @@ function DiagramEditor({ id }: { id: string }) {
   const [pendingCommentText, setPendingCommentText] = useState('')
   const [showVersionPanel, setShowVersionPanel] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
+  // Multi-selection state must be declared BEFORE the keyboard useEffect references it
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([])
 
   // Update browser tab title
   useEffect(() => {
@@ -242,9 +245,7 @@ function DiagramEditor({ id }: { id: string }) {
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
   const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
 
-  // Multi-selection state (Shift+click, marquee). Single selection stays in selectedNodeId for backward compat.
-  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
-  const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([])
+  // Multi-selection state: (see declaration above, moved earlier to avoid TDZ in keyboard useEffect deps)
 
   const handleNodeSelect = useCallback((node: Node | null) => {
     setSelectedNodeId(node?.id ?? null)
