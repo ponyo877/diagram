@@ -71,6 +71,17 @@ export type DiagramNodeData =
   | NoteNodeData
   | PackageNodeData
 
+// 個別マーカー種類（始点/終点それぞれで独立指定可能）
+export type EdgeMarker =
+  | 'none'
+  | 'arrow'              // → (依存矢印)
+  | 'triangle-open'      // ▷ (汎化/実現)
+  | 'triangle-filled'    // ▶
+  | 'diamond-open'       // ◇ (集約)
+  | 'diamond-filled'     // ◆ (コンポジション)
+
+export type LineStyle = 'solid' | 'dashed'
+
 export interface DiagramEdgeData extends Record<string, unknown> {
   edgeType: EdgeType
   sourceMultiplicity?: Multiplicity
@@ -79,4 +90,8 @@ export interface DiagramEdgeData extends Record<string, unknown> {
   label?: string        // relationship name (center of edge)
   sourceRole?: string   // role name near source
   targetRole?: string   // role name near target
+  // 独立マーカー/線スタイル（全て optional、未指定なら edgeType から推論 = 旧挙動）
+  sourceMarker?: EdgeMarker
+  targetMarker?: EdgeMarker
+  lineStyle?: LineStyle
 }

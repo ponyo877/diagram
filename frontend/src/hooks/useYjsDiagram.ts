@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import type { MutableRefObject } from 'react'
 import * as Y from 'yjs'
 import {
   applyNodeChanges,
@@ -16,11 +17,15 @@ import type {
 } from '@xyflow/react'
 import { nanoid } from 'nanoid'
 import { createNode } from '../utils/nodeFactory'
-import type { NodeType } from '../types/diagram'
+import { PACKAGE_TAB_HEIGHT, getNodeAbsolutePos } from '../utils/packageHelpers'
+import type { NodeType, DiagramEdgeData } from '../types/diagram'
 
 const LOCAL_ORIGIN = 'local'
 
-export function useYjsDiagram(ydoc: Y.Doc) {
+export function useYjsDiagram(
+  ydoc: Y.Doc,
+  defaultEdgeDataRef?: MutableRefObject<DiagramEdgeData | null>,
+) {
   const yNodes = ydoc.getMap<Record<string, unknown>>('nodes')
   const yEdges = ydoc.getMap<Record<string, unknown>>('edges')
 
@@ -88,23 +93,35 @@ export function useYjsDiagram(ydoc: Y.Doc) {
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
+      // 直前に使われたエッジ種別（あれば）をデフォルトに使う。なければ association
+      const defaultData: DiagramEdgeData =
+        defaultEdgeDataRef?.current ?? { edgeType: 'association' }
       const newEdge: Edge = {
         ...connection,
         id: nanoid(),
         type: 'diagram',
-        data: { edgeType: 'association' },
+        data: { ...defaultData },
       } as Edge
       setEdges((eds) => [...eds, newEdge])
       ydoc.transact(() => {
         yEdges.set(newEdge.id, newEdge as unknown as Record<string, unknown>)
       }, LOCAL_ORIGIN)
     },
-    [ydoc, yEdges],
+    [ydoc, yEdges, defaultEdgeDataRef],
   )
 
   const handleCreateNode = useCallback(
-    (type: NodeType | string, position: { x: number; y: number }, id?: string, data?: Record<string, unknown>) => {
-      const node = createNode(type, position, id, data)
+    (
+      type: NodeType | string,
+      position: { x: number; y: number },
+      id?: string,
+      data?: Record<string, unknown>,
+      parentId?: string,
+    ) => {
+      const baseNode = createNode(type, position, id, data)
+      const node: Node = parentId
+        ? ({ ...baseNode, parentId, extent: 'parent' as const } as Node)
+        : baseNode
       setNodes((nds) => [...nds, node])
       ydoc.transact(() => {
         yNodes.set(node.id, node as unknown as Record<string, unknown>)
@@ -220,34 +237,35 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     (nodeId: string) => {
       setNodes((nds) => {
         const node = nds.find((n) => n.id === nodeId)
-        if (!node || node.type === 'package') return nds
+        if (!node) return nds
+        // Package も自己だけは除外し、他の Package への再配置は許可する
+        // ただし、自身の子孫 Package への再配置は無限ループを生むので除外する
 
-        // Compute absolute position (accounting for existing parent chain)
-        const getAbsPos = (n: Node, visited = new Set<string>()): { x: number; y: number } => {
-          if (!n.parentId || visited.has(n.id)) return n.position
-          visited.add(n.id)
-          const parent = nds.find((p) => p.id === n.parentId)
-          if (!parent) return n.position
-          const pAbs = getAbsPos(parent, visited)
-          return { x: pAbs.x + n.position.x, y: pAbs.y + n.position.y }
-        }
-
-        const absPos = getAbsPos(node)
+        const absPos = getNodeAbsolutePos(node, nds)
         const nodeW = (node.style?.width as number) ?? 180
         const nodeH = (node.style?.height as number) ?? 120
         const nodeCenter = { x: absPos.x + nodeW / 2, y: absPos.y + nodeH / 2 }
 
         // Find all packages whose bounds contain this node's center
+        // タブ領域 (y: -24 〜 0) も判定に含める
         const containingPackages = nds.filter((p) => {
           if (p.type !== 'package') return false
           if (p.id === nodeId) return false
-          const pAbs = getAbsPos(p)
+          // p が node の子孫なら対象外（循環を防ぐ）
+          const isDescendant = (candidateId: string, ancestorId: string): boolean => {
+            const n = nds.find((x) => x.id === candidateId)
+            if (!n?.parentId) return false
+            if (n.parentId === ancestorId) return true
+            return isDescendant(n.parentId, ancestorId)
+          }
+          if (node.type === 'package' && isDescendant(p.id, nodeId)) return false
+          const pAbs = getNodeAbsolutePos(p, nds)
           const pW = (p.style?.width as number) ?? 300
           const pH = (p.style?.height as number) ?? 200
           return (
             nodeCenter.x >= pAbs.x &&
             nodeCenter.x <= pAbs.x + pW &&
-            nodeCenter.y >= pAbs.y &&
+            nodeCenter.y >= pAbs.y - PACKAGE_TAB_HEIGHT &&
             nodeCenter.y <= pAbs.y + pH
           )
         })
@@ -266,7 +284,7 @@ export function useYjsDiagram(ydoc: Y.Doc) {
         // Compute new position for the node relative to its new parent (or absolute if unparented)
         let newPos = absPos
         if (targetPackage) {
-          const pAbs = getAbsPos(targetPackage)
+          const pAbs = getNodeAbsolutePos(targetPackage, nds)
           newPos = { x: absPos.x - pAbs.x, y: absPos.y - pAbs.y }
         }
 
@@ -278,6 +296,7 @@ export function useYjsDiagram(ydoc: Y.Doc) {
           }
           if (newParentId) {
             next.parentId = newParentId
+            next.extent = 'parent' as const
           } else {
             // Remove parentId when leaving all packages
             const cleaned: Record<string, unknown> = { ...next }

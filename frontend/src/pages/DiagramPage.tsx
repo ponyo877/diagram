@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
-import type { NodeType } from '../types/diagram'
+import type { NodeType, DiagramEdgeData } from '../types/diagram'
 import Canvas from '../components/Canvas/Canvas'
 import Palette from '../components/Palette/Palette'
 import Sidebar from '../components/Sidebar/Sidebar'
@@ -25,8 +25,10 @@ import { useCollaboration } from '../hooks/useCollaboration'
 import { useAutoSave } from '../hooks/useAutoSave'
 import { useUndoManager } from '../hooks/useUndoManager'
 import { exportToPlantUml } from '../utils/plantUmlExporter'
+import { exportToMermaid } from '../utils/mermaidExporter'
 import { applyAutoLayout } from '../utils/diagramLayout'
 import { EdgeActionsContext } from '../contexts/EdgeActionsContext'
+import { findContainingPackageAt, getNodeAbsolutePos } from '../utils/packageHelpers'
 import { nanoid } from 'nanoid'
 
 type DiagramStatus = 'loading' | 'found' | 'not_found' | 'error'
@@ -95,6 +97,8 @@ function DiagramEditor({ id }: { id: string }) {
   const [followingClientId, setFollowingClientId] = useState<number | null>(null)
   const [urlCopied, setUrlCopied] = useState(false)
   const clipboardNode = useRef<Node | null>(null)
+  // 直前のエッジ種別（デフォルトは association）: 連続エッジ作成の利便性向上
+  const lastEdgeDataRef = useRef<DiagramEdgeData | null>({ edgeType: 'association' })
 
   const { ydoc, provider, syncStatus } = useYjsProvider(id)
   const {
@@ -102,7 +106,7 @@ function DiagramEditor({ id }: { id: string }) {
     handleCreateNode, handleUpdateNode, handleDeleteNode,
     handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout, handleChangeZOrder,
     handleGroupNodes, handleUngroupNodes, handleAutoReparent,
-  } = useYjsDiagram(ydoc)
+  } = useYjsDiagram(ydoc, lastEdgeDataRef)
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition, updateViewport } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
@@ -317,9 +321,53 @@ function DiagramEditor({ id }: { id: string }) {
     handleDeleteEdge(edgeId); setSelectedEdgeId(null)
   }, [handleDeleteEdge])
 
+  // エッジ種別・マーカー変更をインターセプトし、直前エッジ情報を記憶する
+  // Yjs 更新自体は既存の handleUpdateEdge に委譲（互換維持）
+  const handleUpdateEdgeWithMemory = useCallback(
+    (id: string, patch: Record<string, unknown>) => {
+      handleUpdateEdge(id, patch)
+      // patch のいずれかが「見た目」に影響するフィールドなら、直前種別として記憶
+      const current = edges.find((e) => e.id === id)
+      const merged = {
+        ...(current?.data as DiagramEdgeData | undefined),
+        ...patch,
+      } as DiagramEdgeData
+      if (
+        'edgeType' in patch ||
+        'sourceMarker' in patch ||
+        'targetMarker' in patch ||
+        'lineStyle' in patch
+      ) {
+        // ラベル/多重度/ロール名などは記憶しない（次のエッジに引き継ぎたくない）
+        lastEdgeDataRef.current = {
+          edgeType: merged.edgeType ?? 'association',
+          ...(merged.sourceMarker ? { sourceMarker: merged.sourceMarker } : {}),
+          ...(merged.targetMarker ? { targetMarker: merged.targetMarker } : {}),
+          ...(merged.lineStyle ? { lineStyle: merged.lineStyle } : {}),
+        }
+      }
+    },
+    [handleUpdateEdge, edges],
+  )
+
   const handleCreateNodeAndClear = useCallback((type: string, position: { x: number; y: number }) => {
-    handleCreateNode(type, position); setSelectedPalette(null)
-  }, [handleCreateNode])
+    // Package はトップレベルで作成（他の Package にネストしない既存挙動を維持）
+    if (type === 'package') {
+      handleCreateNode(type, position)
+      setSelectedPalette(null)
+      return
+    }
+    // クリック位置に含まれる最内の Package を検出 → あれば相対座標で parent 指定
+    const containingPkg = findContainingPackageAt(position, nodes)
+    if (containingPkg) {
+      const pAbs = getNodeAbsolutePos(containingPkg, nodes)
+      const relativePos = { x: position.x - pAbs.x, y: position.y - pAbs.y }
+      handleCreateNode(type, relativePos, undefined, undefined, containingPkg.id)
+    } else {
+      handleCreateNode(type, position)
+    }
+    setSelectedPalette(null)
+  }, [handleCreateNode, nodes])
 
   const handleCopyUrl = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -390,6 +438,7 @@ function DiagramEditor({ id }: { id: string }) {
   }, [selectedNodeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, handleGroupNodes, handleAutoLayout, undo, redo, fitView, setViewport, navigate])
 
   const plantUmlText = showExportModal ? exportToPlantUml(nodes, edges) : ''
+  const mermaidText = showExportModal ? exportToMermaid(nodes, edges) : ''
 
   // 保存ステータス表示
   const saveColor = saveStatus === 'saved' ? 'text-soft-green' : saveStatus === 'offline' ? 'text-soft-red' : 'text-soft-muted'
@@ -482,7 +531,7 @@ function DiagramEditor({ id }: { id: string }) {
 
       {/* フルスクリーンキャンバス */}
       <EdgeActionsContext.Provider value={{
-        onUpdateEdge: handleUpdateEdge,
+        onUpdateEdge: handleUpdateEdgeWithMemory,
         onDeleteEdge: handleDeleteEdgeAndClear,
         toolbarPosition: edgeToolbarPos,
         sourceNodeName: selectedEdge ? ((nodes.find((n) => n.id === selectedEdge.source)?.data as Record<string, unknown>)?.name as string ?? null) : null,
@@ -703,7 +752,7 @@ function DiagramEditor({ id }: { id: string }) {
             selectedEdge={selectedEdge}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNodeAndClear}
-            onUpdateEdge={handleUpdateEdge}
+            onUpdateEdge={handleUpdateEdgeWithMemory}
             onDeleteEdge={handleDeleteEdgeAndClear}
           />
         </div>
@@ -722,7 +771,8 @@ function DiagramEditor({ id }: { id: string }) {
       {/* エクスポートモーダル */}
       {showExportModal && (
         <ExportModal
-          text={plantUmlText}
+          plantUmlText={plantUmlText}
+          mermaidText={mermaidText}
           nodes={nodes}
           onClose={() => setShowExportModal(false)}
           onToast={(msg, type) => type === 'error' ? toast.error(msg) : toast.success(msg)}

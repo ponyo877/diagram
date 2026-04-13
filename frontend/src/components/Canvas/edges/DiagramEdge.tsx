@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { getSmoothStepPath, EdgeLabelRenderer } from '@xyflow/react'
 import type { EdgeProps } from '@xyflow/react'
-import type { DiagramEdgeData, EdgeType, Multiplicity } from '../../../types/diagram'
+import type { DiagramEdgeData, EdgeType, Multiplicity, EdgeMarker, LineStyle } from '../../../types/diagram'
 import { useEdgeActions } from '../../../contexts/EdgeActionsContext'
 
 const EDGE_TYPES: { value: EdgeType; title: string; icon: React.ReactNode }[] = [
@@ -71,6 +72,119 @@ const MULT_OPTIONS: { value: Multiplicity | ''; label: string }[] = [
   { value: '1..n', label: '1..n' },
 ]
 
+const MARKER_OPTIONS: { value: EdgeMarker; label: string }[] = [
+  { value: 'none', label: '— None' },
+  { value: 'arrow', label: '→ Arrow' },
+  { value: 'triangle-open', label: '▷ Triangle (open)' },
+  { value: 'triangle-filled', label: '▶ Triangle (filled)' },
+  { value: 'diamond-open', label: '◇ Diamond (open)' },
+  { value: 'diamond-filled', label: '◆ Diamond (filled)' },
+]
+
+const LINE_OPTIONS: { value: LineStyle; label: string }[] = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'dashed', label: 'Dashed' },
+]
+
+/** edgeType から source 側マーカーを推論（既存挙動の互換性維持） */
+function inferSourceMarker(edgeType: EdgeType): EdgeMarker {
+  if (edgeType === 'aggregation') return 'diamond-open'
+  if (edgeType === 'composition') return 'diamond-filled'
+  return 'none'
+}
+
+/** edgeType から target 側マーカーを推論（既存挙動の互換性維持） */
+function inferTargetMarker(edgeType: EdgeType): EdgeMarker {
+  if (edgeType === 'generalization' || edgeType === 'realization') return 'triangle-open'
+  if (edgeType === 'dependency') return 'arrow'
+  return 'none'
+}
+
+/** EdgeMarker に対応した SVG 定義を描画 */
+function renderMarkerDef(markerId: string, marker: EdgeMarker, position: 'start' | 'end', stroke: string): React.ReactNode {
+  const orient = position === 'start' ? 'auto-start-reverse' : 'auto'
+  // 右向きの形状で定義し、markerStart のときは orient=auto-start-reverse で反転させる
+  switch (marker) {
+    case 'triangle-open':
+      return (
+        <marker
+          key={markerId}
+          id={markerId}
+          markerWidth="14"
+          markerHeight="12"
+          refX={position === 'start' ? 0 : 12}
+          refY="6"
+          orient={orient}
+          markerUnits="userSpaceOnUse"
+        >
+          <polygon points="0,0 12,6 0,12" fill="white" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
+        </marker>
+      )
+    case 'triangle-filled':
+      return (
+        <marker
+          key={markerId}
+          id={markerId}
+          markerWidth="14"
+          markerHeight="12"
+          refX={position === 'start' ? 0 : 12}
+          refY="6"
+          orient={orient}
+          markerUnits="userSpaceOnUse"
+        >
+          <polygon points="0,0 12,6 0,12" fill={stroke} />
+        </marker>
+      )
+    case 'arrow':
+      return (
+        <marker
+          key={markerId}
+          id={markerId}
+          markerWidth="12"
+          markerHeight="12"
+          refX={position === 'start' ? 0 : 10}
+          refY="6"
+          orient={orient}
+          markerUnits="userSpaceOnUse"
+        >
+          <polyline points="0,1 10,6 0,11" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </marker>
+      )
+    case 'diamond-open':
+      return (
+        <marker
+          key={markerId}
+          id={markerId}
+          markerWidth="20"
+          markerHeight="12"
+          refX={position === 'start' ? 0 : 18}
+          refY="6"
+          orient={orient}
+          markerUnits="userSpaceOnUse"
+        >
+          <polygon points="0,6 9,0 18,6 9,12" fill="white" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
+        </marker>
+      )
+    case 'diamond-filled':
+      return (
+        <marker
+          key={markerId}
+          id={markerId}
+          markerWidth="20"
+          markerHeight="12"
+          refX={position === 'start' ? 0 : 18}
+          refY="6"
+          orient={orient}
+          markerUnits="userSpaceOnUse"
+        >
+          <polygon points="0,6 9,0 18,6 9,12" fill={stroke} />
+        </marker>
+      )
+    default:
+      return null
+  }
+}
+
 export default function DiagramEdge({
   id,
   sourceX,
@@ -85,6 +199,7 @@ export default function DiagramEdge({
   const edgeData = data as unknown as DiagramEdgeData
   const edgeType = edgeData?.edgeType ?? 'association'
   const { onUpdateEdge, onDeleteEdge, toolbarPosition, sourceNodeName, targetNodeName } = useEdgeActions()
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Display multiplicity in standard UML notation
   const displayMult = (m: string) => m === '0..n' ? '0..*' : m === '1..n' ? '1..*' : m
@@ -95,17 +210,22 @@ export default function DiagramEdge({
     borderRadius: 8,
   })
 
-  const isDashed = edgeType === 'realization' || edgeType === 'dependency'
+  // 線スタイル: 明示的な lineStyle が優先、未指定なら edgeType から推論
+  const isDashed = edgeData?.lineStyle
+    ? edgeData.lineStyle === 'dashed'
+    : (edgeType === 'realization' || edgeType === 'dependency')
+
   const stroke = selected ? '#4a9ce8' : '#9e9589'
   const safeId = id.replace(/[^a-zA-Z0-9]/g, '_')
 
-  const showTriangle = edgeType === 'generalization' || edgeType === 'realization'
-  const showArrow = edgeType === 'dependency'
-  const showDiamondOpen = edgeType === 'aggregation'
-  const showDiamondFilled = edgeType === 'composition'
+  // マーカー: 明示的な sourceMarker/targetMarker が優先、未指定なら edgeType から推論
+  const sourceMarker: EdgeMarker = edgeData?.sourceMarker ?? inferSourceMarker(edgeType)
+  const targetMarker: EdgeMarker = edgeData?.targetMarker ?? inferTargetMarker(edgeType)
 
-  const markerEndUrl = showTriangle ? `url(#tri-${safeId})` : showArrow ? `url(#arr-${safeId})` : undefined
-  const markerStartUrl = showDiamondOpen ? `url(#dmo-${safeId})` : showDiamondFilled ? `url(#dmf-${safeId})` : undefined
+  const srcMarkerId = `ms-${safeId}`
+  const tgtMarkerId = `mt-${safeId}`
+  const markerStartUrl = sourceMarker !== 'none' ? `url(#${srcMarkerId})` : undefined
+  const markerEndUrl = targetMarker !== 'none' ? `url(#${tgtMarkerId})` : undefined
 
   // 多重度ラベル位置
   const dx = targetX - sourceX
@@ -127,29 +247,21 @@ export default function DiagramEdge({
     onUpdateEdge(id, patch as Record<string, unknown>)
   }
 
+  // edgeType プリセット選択時: カスタムマーカー/線スタイルをリセット → プリセット定義で描画
+  const selectEdgeType = (v: EdgeType) => {
+    update({
+      edgeType: v,
+      sourceMarker: undefined,
+      targetMarker: undefined,
+      lineStyle: undefined,
+    })
+  }
+
   return (
     <>
       <defs>
-        {showTriangle && (
-          <marker id={`tri-${safeId}`} markerWidth="14" markerHeight="12" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-            <polygon points="0,0 12,6 0,12" fill="white" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
-          </marker>
-        )}
-        {showArrow && (
-          <marker id={`arr-${safeId}`} markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-            <polyline points="0,1 10,6 0,11" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </marker>
-        )}
-        {showDiamondOpen && (
-          <marker id={`dmo-${safeId}`} markerWidth="20" markerHeight="12" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-            <polygon points="0,6 9,0 18,6 9,12" fill="white" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
-          </marker>
-        )}
-        {showDiamondFilled && (
-          <marker id={`dmf-${safeId}`} markerWidth="20" markerHeight="12" refX="0" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-            <polygon points="0,6 9,0 18,6 9,12" fill={stroke} />
-          </marker>
-        )}
+        {sourceMarker !== 'none' && renderMarkerDef(srcMarkerId, sourceMarker, 'start', stroke)}
+        {targetMarker !== 'none' && renderMarkerDef(tgtMarkerId, targetMarker, 'end', stroke)}
       </defs>
 
       <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} style={{ cursor: 'pointer' }} />
@@ -268,9 +380,9 @@ export default function DiagramEdge({
                 <button
                   key={t.value}
                   title={t.title}
-                  onClick={() => update({ edgeType: t.value })}
+                  onClick={() => selectEdgeType(t.value)}
                   className={`w-7 h-6 flex items-center justify-center rounded-lg transition-colors ${
-                    edgeType === t.value
+                    edgeType === t.value && !edgeData?.sourceMarker && !edgeData?.targetMarker && !edgeData?.lineStyle
                       ? 'bg-soft-primary-light text-soft-primary'
                       : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'
                   }`}
@@ -352,7 +464,68 @@ export default function DiagramEdge({
                 onChange={(e) => update({ targetRole: e.target.value || undefined })}
                 className="h-6 w-14 px-1.5 text-[10px] bg-soft-input border border-soft-border rounded-lg focus:outline-none focus:border-soft-primary"
               />
+              {/* Advanced 開閉ボタン */}
+              <button
+                title="Advanced (Source/Target marker, line style)"
+                onClick={() => setShowAdvanced((v) => !v)}
+                className={`ml-1 h-6 px-2 text-[10px] rounded-lg border transition-colors ${
+                  showAdvanced
+                    ? 'border-soft-primary text-soft-primary bg-soft-primary-light'
+                    : 'border-soft-border text-soft-muted hover:text-soft-text hover:bg-soft-hover'
+                }`}
+              >
+                {showAdvanced ? '⚙ ▾' : '⚙'}
+              </button>
             </div>
+
+            {/* 第3段: Advanced（始点/終点マーカー・線スタイル独立指定） */}
+            {showAdvanced && (
+              <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-soft-border px-2 py-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                <span className="text-[9px] text-soft-light">src</span>
+                <select
+                  value={edgeData?.sourceMarker ?? ''}
+                  onChange={(e) => update({ sourceMarker: e.target.value ? (e.target.value as EdgeMarker) : undefined })}
+                  className="h-6 text-[10px] bg-transparent border border-soft-border rounded-lg px-1 focus:outline-none focus:border-soft-primary cursor-pointer"
+                  title="Source marker (overrides edge type preset)"
+                >
+                  <option value="">auto ({inferSourceMarker(edgeType)})</option>
+                  {MARKER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <span className="text-[9px] text-soft-light">line</span>
+                <select
+                  value={edgeData?.lineStyle ?? ''}
+                  onChange={(e) => update({ lineStyle: e.target.value ? (e.target.value as LineStyle) : undefined })}
+                  className="h-6 text-[10px] bg-transparent border border-soft-border rounded-lg px-1 focus:outline-none focus:border-soft-primary cursor-pointer"
+                  title="Line style (overrides edge type preset)"
+                >
+                  <option value="">auto ({isDashed ? 'dashed' : 'solid'})</option>
+                  {LINE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <span className="text-[9px] text-soft-light">tgt</span>
+                <select
+                  value={edgeData?.targetMarker ?? ''}
+                  onChange={(e) => update({ targetMarker: e.target.value ? (e.target.value as EdgeMarker) : undefined })}
+                  className="h-6 text-[10px] bg-transparent border border-soft-border rounded-lg px-1 focus:outline-none focus:border-soft-primary cursor-pointer"
+                  title="Target marker (overrides edge type preset)"
+                >
+                  <option value="">auto ({inferTargetMarker(edgeType)})</option>
+                  {MARKER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  title="Reset to preset (use edge type)"
+                  onClick={() => update({ sourceMarker: undefined, targetMarker: undefined, lineStyle: undefined })}
+                  className="ml-1 h-6 px-2 text-[9px] border border-soft-border rounded-lg text-soft-muted hover:text-soft-text hover:bg-soft-hover"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
           </div>
         </EdgeLabelRenderer>
       )}

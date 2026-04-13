@@ -36,11 +36,12 @@ const CATEGORIES = [
     ],
   },
   {
-    title: 'Selection',
+    title: 'Selection & Pan',
     items: [
+      { keys: ['Drag'], label: 'Pan canvas (empty area)' },
+      { keys: ['⇧', 'Drag'], label: 'Marquee select (empty area)' },
       { keys: ['⇧', 'Click'], label: 'Add to selection' },
-      { keys: ['Drag'], label: 'Marquee select (empty area)' },
-      { keys: ['Space', 'Drag'], label: 'Pan canvas' },
+      { keys: ['Middle', 'Drag'], label: 'Pan canvas' },
     ],
   },
   {

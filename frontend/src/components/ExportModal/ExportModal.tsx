@@ -4,19 +4,24 @@ import { getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import type { Node } from '@xyflow/react'
 
 interface ExportModalProps {
-  text: string
+  plantUmlText: string
+  mermaidText: string
   nodes: Node[]
   onClose: () => void
   onToast?: (msg: string, type?: 'success' | 'error') => void
 }
 
-type Tab = 'plantuml' | 'png' | 'svg'
+type Tab = 'mermaid' | 'plantuml' | 'png' | 'svg'
 
-export default function ExportModal({ text, nodes, onClose, onToast }: ExportModalProps) {
-  const [tab, setTab] = useState<Tab>('plantuml')
+export default function ExportModal({ plantUmlText, mermaidText, nodes, onClose, onToast }: ExportModalProps) {
+  // デフォルトは Mermaid（順番も: Mermaid | PlantUML | PNG | SVG）
+  const [tab, setTab] = useState<Tab>('mermaid')
   const [copied, setCopied] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [pixelRatio, setPixelRatio] = useState<1 | 2 | 3>(2)
+
+  const textTab = tab === 'mermaid' || tab === 'plantuml'
+  const currentText = tab === 'mermaid' ? mermaidText : tab === 'plantuml' ? plantUmlText : ''
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -28,7 +33,7 @@ export default function ExportModal({ text, nodes, onClose, onToast }: ExportMod
 
   // Generate image preview when tab changes (PNG/SVG)
   useEffect(() => {
-    if (tab === 'plantuml') return
+    if (textTab) return
     let cancelled = false
     const generate = async () => {
       try {
@@ -73,25 +78,27 @@ export default function ExportModal({ text, nodes, onClose, onToast }: ExportMod
     }
     generate()
     return () => { cancelled = true }
-  }, [tab, nodes, pixelRatio])
+  }, [tab, nodes, pixelRatio, textTab])
 
   const handleCopyText = () => {
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(currentText).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-      onToast?.('PlantUML copied')
+      onToast?.(tab === 'mermaid' ? 'Mermaid copied' : 'PlantUML copied')
     })
   }
 
   const handleDownloadText = () => {
-    const blob = new Blob([text], { type: 'text/plain' })
+    const ext = tab === 'mermaid' ? 'mmd' : 'puml'
+    const mime = tab === 'mermaid' ? 'text/plain' : 'text/plain'
+    const blob = new Blob([currentText], { type: mime })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'diagram.puml'
+    a.download = `diagram.${ext}`
     a.click()
     URL.revokeObjectURL(url)
-    onToast?.('Downloaded diagram.puml')
+    onToast?.(`Downloaded diagram.${ext}`)
   }
 
   const handleDownloadImage = () => {
@@ -124,9 +131,9 @@ export default function ExportModal({ text, nodes, onClose, onToast }: ExportMod
           </button>
         </div>
 
-        {/* タブ */}
+        {/* タブ（Mermaid がデフォルト） */}
         <div className="flex items-center gap-1 px-4 pt-2 border-b border-soft-border shrink-0">
-          {(['plantuml', 'png', 'svg'] as Tab[]).map((t) => (
+          {(['mermaid', 'plantuml', 'png', 'svg'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -136,16 +143,16 @@ export default function ExportModal({ text, nodes, onClose, onToast }: ExportMod
                   : 'text-soft-muted hover:text-soft-text hover:bg-soft-hover'
               }`}
             >
-              {t === 'plantuml' ? 'PlantUML' : t.toUpperCase()}
+              {t === 'plantuml' ? 'PlantUML' : t === 'mermaid' ? 'Mermaid' : t.toUpperCase()}
             </button>
           ))}
         </div>
 
         {/* コンテンツ */}
-        {tab === 'plantuml' ? (
+        {textTab ? (
           <>
             <pre className="flex-1 overflow-auto p-4 text-[12px] font-mono text-soft-text bg-soft-input leading-relaxed whitespace-pre">
-              {text}
+              {currentText}
             </pre>
             <div className="flex items-center justify-end gap-2 px-4 h-12 border-t border-soft-border shrink-0">
               <button
@@ -158,7 +165,7 @@ export default function ExportModal({ text, nodes, onClose, onToast }: ExportMod
                 onClick={handleDownloadText}
                 className="h-8 px-4 text-xs bg-soft-primary hover:bg-soft-primary-hover text-white rounded-full transition-colors"
               >
-                Download .puml
+                {tab === 'mermaid' ? 'Download .mmd' : 'Download .puml'}
               </button>
             </div>
           </>

@@ -160,8 +160,8 @@ export default function Canvas({
             )
           }
         }}
-        selectionOnDrag={!selectedPalette}
-        panOnDrag={selectedPalette ? true : [1, 2]}
+        selectionOnDrag={false}
+        panOnDrag={!selectedPalette}
         onNodeContextMenu={(event, node) => {
           event.preventDefault()
           if (node.id === PREVIEW_ID) return
@@ -179,13 +179,24 @@ export default function Canvas({
           if (node.id === PREVIEW_ID) return
           if (onNodeDragStop) onNodeDragStop(node)
         }}
-        selectionKeyCode={null}
+        selectionKeyCode={'Shift'}
         multiSelectionKeyCode={'Shift'}
-        panActivationKeyCode={'Space'}
+        panActivationKeyCode={null}
         onNodeClick={(event, node) => {
           if (node.id === PREVIEW_ID) return
           // Skip single-select logic when Shift+click (let onSelectionChange handle multi-select)
           if (event.shiftKey) return
+          // Package 上でパレット選択中なら、Package 内に新規ノードを作成する
+          // （onPaneClick は Package 上では発火しないため、onNodeClick で補完）
+          if (selectedPalette && node.type === 'package') {
+            const position = screenToFlowPosition({
+              x: event.clientX,
+              y: event.clientY,
+            })
+            onCreateNode(selectedPalette, position)
+            setPreviewPos(null)
+            return
+          }
           onNodeSelect(node)
           onEdgeSelect(null)
         }}

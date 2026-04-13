@@ -5,6 +5,8 @@ import type {
   NoteNodeData,
   PackageNodeData,
   DiagramEdgeData,
+  EdgeMarker,
+  LineStyle,
   Visibility,
   Multiplicity,
 } from '../types/diagram'
@@ -32,6 +34,34 @@ function edgeArrow(edgeType: string): string {
     case 'composition':    return '--*'
     default:               return '--'
   }
+}
+
+/** 明示指定された source/target マーカーと線スタイルから PlantUML 矢印を生成 */
+function edgeArrowFromMarkers(
+  sourceMarker: EdgeMarker | undefined,
+  targetMarker: EdgeMarker | undefined,
+  lineStyle: LineStyle | undefined,
+): string {
+  const line = lineStyle === 'dashed' ? '..' : '--'
+  const markerToPlant = (m: EdgeMarker | undefined, pos: 'src' | 'tgt'): string => {
+    switch (m) {
+      case 'arrow':
+        return pos === 'tgt' ? '>' : '<'
+      case 'triangle-open':
+      case 'triangle-filled':
+        // PlantUML は open/filled の区別なし
+        return pos === 'tgt' ? '|>' : '<|'
+      case 'diamond-open':
+        return 'o'
+      case 'diamond-filled':
+        return '*'
+      default:
+        return ''
+    }
+  }
+  const srcM = markerToPlant(sourceMarker, 'src')
+  const tgtM = markerToPlant(targetMarker, 'tgt')
+  return `${srcM}${line}${tgtM}`
 }
 
 function formatMult(m?: Multiplicity): string {
@@ -114,7 +144,12 @@ export function exportToPlantUml(nodes: Node[], edges: Edge[]): string {
 
     const srcName = (src.data as ClassNodeData).name ?? `Node_${edge.source}`
     const tgtName = (tgt.data as ClassNodeData).name ?? `Node_${edge.target}`
-    const arrow = edgeArrow(d?.edgeType ?? 'association')
+    // 明示的な sourceMarker/targetMarker/lineStyle があればそれ優先、なければ edgeType から
+    const hasCustomMarkers =
+      d?.sourceMarker !== undefined || d?.targetMarker !== undefined || d?.lineStyle !== undefined
+    const arrow = hasCustomMarkers
+      ? edgeArrowFromMarkers(d?.sourceMarker, d?.targetMarker, d?.lineStyle)
+      : edgeArrow(d?.edgeType ?? 'association')
     const srcMult = formatMult(d?.sourceMultiplicity)
     const tgtMult = formatMult(d?.targetMultiplicity)
     const srcRole = d?.sourceRole ? `"${d.sourceRole}" ` : ''
