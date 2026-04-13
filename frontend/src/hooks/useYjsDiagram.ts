@@ -213,6 +213,106 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     [ydoc, yNodes],
   )
 
+  // Group: wrap selected nodes inside a new Package
+  const handleGroupNodes = useCallback(
+    (ids: string[]) => {
+      if (ids.length < 1) return
+      setNodes((nds) => {
+        const targets = nds.filter((n) => ids.includes(n.id) && !n.parentId)
+        if (targets.length === 0) return nds
+
+        // Compute bounding box
+        const positions = targets.map((n) => ({
+          x: n.position.x,
+          y: n.position.y,
+          w: (n.style?.width as number) ?? 180,
+          h: (n.style?.height as number) ?? 120,
+        }))
+        const minX = Math.min(...positions.map((p) => p.x))
+        const minY = Math.min(...positions.map((p) => p.y))
+        const maxX = Math.max(...positions.map((p) => p.x + p.w))
+        const maxY = Math.max(...positions.map((p) => p.y + p.h))
+        const padding = 40
+        const tabHeight = 30
+
+        const groupId = nanoid()
+        const groupNode = {
+          id: groupId,
+          type: 'package',
+          position: { x: minX - padding, y: minY - padding - tabHeight },
+          style: {
+            width: maxX - minX + padding * 2,
+            height: maxY - minY + padding * 2 + tabHeight,
+          },
+          zIndex: -1,
+          data: {
+            nodeType: 'package',
+            name: 'Group',
+            color: '#f0ebe3',
+          },
+        } as Node
+
+        // Update children: assign parentId and convert to relative positions
+        const updatedChildren = targets.map((n) => ({
+          ...n,
+          parentId: groupId,
+          position: {
+            x: n.position.x - (minX - padding),
+            y: n.position.y - (minY - padding - tabHeight),
+          },
+          extent: 'parent' as const,
+        }))
+
+        const updatedIds = new Set(targets.map((n) => n.id))
+        const result = [...nds.filter((n) => !updatedIds.has(n.id)), groupNode, ...updatedChildren]
+
+        ydoc.transact(() => {
+          yNodes.set(groupNode.id, groupNode as unknown as Record<string, unknown>)
+          for (const c of updatedChildren) {
+            yNodes.set(c.id, c as unknown as Record<string, unknown>)
+          }
+        }, LOCAL_ORIGIN)
+
+        return result
+      })
+    },
+    [ydoc, yNodes],
+  )
+
+  // Ungroup: remove package parent, move children back to top-level
+  const handleUngroupNodes = useCallback(
+    (packageId: string) => {
+      setNodes((nds) => {
+        const pkg = nds.find((n) => n.id === packageId)
+        if (!pkg || pkg.type !== 'package') return nds
+        const children = nds.filter((n) => n.parentId === packageId)
+
+        const updatedChildren = children.map((c) => ({
+          ...c,
+          parentId: undefined,
+          extent: undefined,
+          position: {
+            x: c.position.x + pkg.position.x,
+            y: c.position.y + pkg.position.y,
+          },
+        }))
+
+        const toRemove = new Set([packageId, ...children.map((c) => c.id)])
+        const result = [...nds.filter((n) => !toRemove.has(n.id)), ...updatedChildren]
+
+        ydoc.transact(() => {
+          yNodes.delete(packageId)
+          for (const c of updatedChildren) {
+            yNodes.set(c.id, c as unknown as Record<string, unknown>)
+          }
+        }, LOCAL_ORIGIN)
+
+        return result
+      })
+    },
+    [ydoc, yNodes],
+  )
+
   // Relayout: update all node positions in a single transaction
   const handleRelayout = useCallback(
     (layoutedNodes: Node[]) => {
@@ -240,5 +340,7 @@ export function useYjsDiagram(ydoc: Y.Doc) {
     handleImportDiagram,
     handleRelayout,
     handleChangeZOrder,
+    handleGroupNodes,
+    handleUngroupNodes,
   }
 }

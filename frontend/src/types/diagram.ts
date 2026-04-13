@@ -75,4 +75,8 @@ export interface DiagramEdgeData extends Record<string, unknown> {
   edgeType: EdgeType
   sourceMultiplicity?: Multiplicity
   targetMultiplicity?: Multiplicity
+  // UML-compliant optional labels
+  label?: string        // relationship name (center of edge)
+  sourceRole?: string   // role name near source
+  targetRole?: string   // role name near target
 }

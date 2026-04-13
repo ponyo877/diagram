@@ -199,6 +199,57 @@ export default function DiagramEdge({
         </EdgeLabelRenderer>
       )}
 
+      {/* エッジラベル（中央） */}
+      {edgeData?.label && (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan bg-white px-1 rounded"
+            style={{
+              position: 'absolute', fontSize: 10, color: '#3d3836',
+              fontFamily: "'M PLUS Rounded 1c', sans-serif", pointerEvents: 'none',
+              transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px, ${(sourceY + targetY) / 2}px)`,
+              zIndex: 1000,
+            }}
+          >
+            {edgeData.label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+
+      {/* ロール名（source側） */}
+      {edgeData?.sourceRole && (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan bg-white px-0.5 italic"
+            style={{
+              position: 'absolute', fontSize: 9, color: '#7a7168',
+              fontFamily: "'M PLUS Rounded 1c', sans-serif", pointerEvents: 'none',
+              transform: `translate(-50%, 50%) translate(${srcLX}px, ${srcLY + 10}px)`,
+              zIndex: 1000,
+            }}
+          >
+            {edgeData.sourceRole}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+
+      {/* ロール名（target側） */}
+      {edgeData?.targetRole && (
+        <EdgeLabelRenderer>
+          <div
+            className="nodrag nopan bg-white px-0.5 italic"
+            style={{
+              position: 'absolute', fontSize: 9, color: '#7a7168',
+              fontFamily: "'M PLUS Rounded 1c', sans-serif", pointerEvents: 'none',
+              transform: `translate(-50%, 50%) translate(${tgtLX}px, ${tgtLY + 10}px)`,
+              zIndex: 1000,
+            }}
+          >
+            {edgeData.targetRole}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+
       {/* 選択時フローティングツールバー */}
       {selected && (
         <EdgeLabelRenderer>
@@ -274,6 +325,33 @@ export default function DiagramEdge({
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
+            </div>
+
+            {/* 第2段: ラベル・ロール入力 */}
+            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-soft-border px-2 py-1 mt-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={edgeData?.label ?? ''}
+                placeholder="label"
+                onChange={(e) => update({ label: e.target.value || undefined })}
+                className="h-6 w-20 px-1.5 text-[10px] bg-soft-input border border-soft-border rounded-lg focus:outline-none focus:border-soft-primary"
+              />
+              <span className="text-[9px] text-soft-light">src</span>
+              <input
+                type="text"
+                value={edgeData?.sourceRole ?? ''}
+                placeholder="role"
+                onChange={(e) => update({ sourceRole: e.target.value || undefined })}
+                className="h-6 w-14 px-1.5 text-[10px] bg-soft-input border border-soft-border rounded-lg focus:outline-none focus:border-soft-primary"
+              />
+              <span className="text-[9px] text-soft-light">tgt</span>
+              <input
+                type="text"
+                value={edgeData?.targetRole ?? ''}
+                placeholder="role"
+                onChange={(e) => update({ targetRole: e.target.value || undefined })}
+                className="h-6 w-14 px-1.5 text-[10px] bg-soft-input border border-soft-border rounded-lg focus:outline-none focus:border-soft-primary"
+              />
             </div>
           </div>
         </EdgeLabelRenderer>

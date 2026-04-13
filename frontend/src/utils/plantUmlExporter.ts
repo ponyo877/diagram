@@ -117,7 +117,11 @@ export function exportToPlantUml(nodes: Node[], edges: Edge[]): string {
     const arrow = edgeArrow(d?.edgeType ?? 'association')
     const srcMult = formatMult(d?.sourceMultiplicity)
     const tgtMult = formatMult(d?.targetMultiplicity)
-    lines.push(`${srcName} ${srcMult}${arrow} ${tgtMult}${tgtName}`)
+    const srcRole = d?.sourceRole ? `"${d.sourceRole}" ` : ''
+    const tgtRole = d?.targetRole ? ` "${d.targetRole}"` : ''
+    const labelSuffix = d?.label ? ` : ${d.label}` : ''
+    // Format: Src "srcMult" "srcRole" arrow "tgtRole" "tgtMult" Tgt : label
+    lines.push(`${srcName} ${srcMult}${srcRole}${arrow}${tgtRole ? tgtRole.trimStart() + ' ' : ' '}${tgtMult}${tgtName}${labelSuffix}`)
   }
 
   lines.push('')

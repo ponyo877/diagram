@@ -12,6 +12,7 @@ import ImportModal from '../components/ImportModal/ImportModal'
 import ZoomControls from '../components/ZoomControls/ZoomControls'
 import ShortcutsModal from '../components/ShortcutsModal/ShortcutsModal'
 import ContextMenu, { type ContextMenuEntry } from '../components/ContextMenu/ContextMenu'
+import { useDiagramMeta } from '../hooks/useDiagramMeta'
 import { useToast } from '../contexts/ToastContext'
 import { useYjsProvider } from '../hooks/useYjsProvider'
 import { useYjsDiagram } from '../hooks/useYjsDiagram'
@@ -91,12 +92,22 @@ function DiagramEditor({ id }: { id: string }) {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     handleCreateNode, handleUpdateNode, handleDeleteNode,
     handleUpdateEdge, handleDeleteEdge, handleImportDiagram, handleRelayout, handleChangeZOrder,
+    handleGroupNodes, handleUngroupNodes,
   } = useYjsDiagram(ydoc)
   const { userName, updateUserName, remoteUsers, updateCursorPosition, clearCursorPosition } = useCollaboration(provider)
   const saveStatus = useAutoSave(ydoc, syncStatus)
   const { undo, redo } = useUndoManager(ydoc)
   const { fitView } = useReactFlow()
   const toast = useToast()
+  const { name: diagramName, updateName: updateDiagramName } = useDiagramMeta(ydoc)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+
+  // Update browser tab title
+  useEffect(() => {
+    const displayName = diagramName || 'Untitled'
+    document.title = `Diagramer - ${displayName}`
+    return () => { document.title = 'Diagramer' }
+  }, [diagramName])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -138,6 +149,24 @@ function DiagramEditor({ id }: { id: string }) {
         if (e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
         if (e.key === 'z') { e.preventDefault(); undo(); return }
         if (e.key === '/') { e.preventDefault(); setShowShortcutsModal((v) => !v); return }
+        if (e.key === 'g') {
+          e.preventDefault()
+          if (e.shiftKey) {
+            // Ungroup
+            if (selectedNodeId) {
+              const node = nodes.find((n) => n.id === selectedNodeId)
+              if (node?.type === 'package') handleUngroupNodes(selectedNodeId)
+            }
+          } else {
+            // Group selected
+            const ids = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : [])
+            if (ids.length > 0) {
+              handleGroupNodes(ids)
+              toast.success(`Grouped ${ids.length} nodes`)
+            }
+          }
+          return
+        }
         // Z-order: Cmd+] / Cmd+[ (with optional Shift for front/back)
         if ((e.key === ']' || e.key === '[') && selectedNodeId) {
           e.preventDefault()
@@ -173,7 +202,7 @@ function DiagramEditor({ id }: { id: string }) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode, handleChangeZOrder])
+  }, [selectedNodeId, selectedEdgeId, selectedNodeIds, selectedEdgeIds, handleDeleteNode, handleDeleteEdge, undo, redo, nodes, handleCreateNode, handleChangeZOrder, handleGroupNodes, handleUngroupNodes, toast])
 
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
   const selectedEdge = selectedEdgeId ? (edges.find((e) => e.id === selectedEdgeId) ?? null) : null
@@ -328,14 +357,37 @@ function DiagramEditor({ id }: { id: string }) {
       />
       </EdgeActionsContext.Provider>
 
-      {/* 左上: 透過ロゴ */}
-      <button
-        className="absolute top-3 left-4 z-10 opacity-40 hover:opacity-70 transition-opacity"
-        onClick={() => navigate('/')}
-        title="Back to Home"
-      >
-        <LogoIcon />
-      </button>
+      {/* 左上: 透過ロゴ + タイトル */}
+      <div className="absolute top-3 left-4 z-10 flex items-center gap-3">
+        <button
+          className="opacity-40 hover:opacity-70 transition-opacity"
+          onClick={() => navigate('/')}
+          title="Back to Home"
+        >
+          <LogoIcon />
+        </button>
+        {isEditingTitle ? (
+          <input
+            autoFocus
+            defaultValue={diagramName}
+            placeholder="Untitled"
+            onBlur={(e) => { updateDiagramName(e.target.value); setIsEditingTitle(false) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { updateDiagramName((e.target as HTMLInputElement).value); setIsEditingTitle(false) }
+              if (e.key === 'Escape') setIsEditingTitle(false)
+            }}
+            className="text-sm font-semibold bg-soft-input border border-soft-border rounded-lg px-2 py-1 w-48 text-soft-text focus:outline-none focus:border-soft-primary"
+          />
+        ) : (
+          <button
+            onClick={() => setIsEditingTitle(true)}
+            className="text-sm font-semibold text-soft-text hover:bg-soft-hover px-2 py-1 rounded-lg transition-colors max-w-[240px] truncate"
+            title="Click to rename"
+          >
+            {diagramName || 'Untitled'}
+          </button>
+        )}
+      </div>
 
       {/* 右上: フローティングアクションバー */}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
