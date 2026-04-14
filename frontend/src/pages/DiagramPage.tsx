@@ -173,6 +173,17 @@ function DiagramEditor({ id }: { id: string }) {
         string,
         { parentId?: string; position: { x: number; y: number } }
       >()
+      // コピー元ノードの実サイズを DOM から取得（extent='parent' のクランプに使用）
+      // src DOM が無いケース（他タブからのペーストなど）は style またはデフォルトにフォールバック
+      const getNodeSize = (id: string, srcN: Node | undefined): { w: number; h: number } => {
+        const el = document.querySelector(`[data-id="${id}"]`) as HTMLElement | null
+        if (el && el.offsetWidth > 0) return { w: el.offsetWidth, h: el.offsetHeight }
+        return {
+          w: (srcN?.style?.width as number | undefined) ?? 180,
+          h: (srcN?.style?.height as number | undefined) ?? 120,
+        }
+      }
+
       for (const [id, abs] of topLevelAbs) {
         const newAbs = { x: abs.x + offsetX, y: abs.y + offsetY }
         const srcN = srcMap.get(id)
@@ -184,9 +195,18 @@ function DiagramEditor({ id }: { id: string }) {
         const containingPkg = findContainingPackageAt(newAbs, nodes)
         if (containingPkg) {
           const pAbs = getNodeAbsolutePos(containingPkg, nodes)
+          const pW = (containingPkg.style?.width as number | undefined) ?? 300
+          const pH = (containingPkg.style?.height as number | undefined) ?? 200
+          const { w: nW, h: nH } = getNodeSize(id, srcN)
+          // extent='parent' で React Flow が押し戻す分を事前に適用し、
+          // Yjs と React Flow 内部 state の position を一致させる
+          let relX = newAbs.x - pAbs.x
+          let relY = newAbs.y - pAbs.y
+          relX = Math.max(0, Math.min(relX, pW - nW))
+          relY = Math.max(0, Math.min(relY, pH - nH))
           tlPlacement.set(id, {
             parentId: containingPkg.id,
-            position: { x: newAbs.x - pAbs.x, y: newAbs.y - pAbs.y },
+            position: { x: relX, y: relY },
           })
         } else {
           tlPlacement.set(id, { position: newAbs })
