@@ -4,14 +4,34 @@ import EnumProperties from './EnumProperties'
 import NoteProperties from './NoteProperties'
 import PackageProperties from './PackageProperties'
 import EdgeProperties from './EdgeProperties'
+import type { PackageNodeData } from '../../types/diagram'
 
 interface SidebarProps {
   selectedNode: Node | null
   selectedEdge: Edge | null
+  nodes: Node[]
   onUpdateNode: (id: string, data: Record<string, unknown>) => void
   onDeleteNode: (id: string) => void
   onUpdateEdge: (id: string, data: Record<string, unknown>) => void
   onDeleteEdge: (id: string) => void
+}
+
+function ParentPackageSection({ name }: { name: string }) {
+  return (
+    <div className="border-b border-soft-border">
+      <div className="px-3 py-2 text-[10px] font-semibold text-soft-light uppercase tracking-widest">
+        Parent Package
+      </div>
+      <div className="px-3 pb-3">
+        <div
+          className="w-full h-7 px-2 flex items-center text-[12px] bg-soft-input border border-soft-border rounded text-soft-light truncate"
+          title={name}
+        >
+          {name}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const panelTitle = (node: Node | null, edge: Edge | null) => {
@@ -26,12 +46,21 @@ const panelTitle = (node: Node | null, edge: Edge | null) => {
 export default function Sidebar({
   selectedNode,
   selectedEdge,
+  nodes,
   onUpdateNode,
   onDeleteNode,
   onUpdateEdge,
   onDeleteEdge,
 }: SidebarProps) {
   if (!selectedNode && !selectedEdge) return null
+
+  const parentPackageName = (() => {
+    if (!selectedNode?.parentId) return '(none)'
+    const parent = nodes.find((n) => n.id === selectedNode.parentId)
+    if (!parent || parent.type !== 'package') return '(none)'
+    const name = (parent.data as unknown as PackageNodeData).name
+    return name && name.length > 0 ? name : '(unnamed)'
+  })()
 
   return (
     <div className="w-64 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-soft-border overflow-hidden flex flex-col max-h-[calc(100vh-80px)]">
@@ -55,6 +84,7 @@ export default function Sidebar({
         {/* ノード選択時 */}
         {selectedNode && !selectedEdge && (
           <>
+            <ParentPackageSection name={parentPackageName} />
             {(selectedNode.type === 'class' || selectedNode.type === 'interface') && (
               <NodeProperties
                 node={selectedNode}

@@ -945,6 +945,7 @@ function DiagramEditor({ id }: { id: string }) {
           <Sidebar
             selectedNode={selectedNode}
             selectedEdge={selectedEdge}
+            nodes={nodes}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNodeAndClear}
             onUpdateEdge={handleUpdateEdgeWithMemory}
